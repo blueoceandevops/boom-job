@@ -3,7 +3,10 @@ package me.stevenkin.boom.job.common.bean;
 import lombok.Getter;
 import lombok.Setter;
 
-public class JobResult {
+import java.io.Serializable;
+
+public class JobResult implements Serializable {
+    private static final long serialVersionUID = 27524604536152L;
 
     public static final JobResult SUCCESS = new JobResult(0);
 

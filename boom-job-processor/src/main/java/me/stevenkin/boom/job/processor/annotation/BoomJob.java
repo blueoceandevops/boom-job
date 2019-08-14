@@ -9,4 +9,18 @@ import java.lang.annotation.*;
 @Documented
 @Component
 public @interface BoomJob {
+    /**
+     * job name
+     */
+    String name() default "";
+
+    /**
+     * job version
+     */
+    String version() default "0.0.1";
+
+    /**
+     * job desc
+     */
+    String description() default "";
 }
