@@ -3,9 +3,11 @@ package me.stevenkin.boom.job.processor.core;
 import com.alibaba.dubbo.config.ApplicationConfig;
 import com.alibaba.dubbo.config.RegistryConfig;
 import com.alibaba.dubbo.config.ServiceConfig;
-import com.google.common.base.Joiner;
 import lombok.extern.slf4j.Slf4j;
+import me.stevenkin.boom.job.common.bean.JobInfo;
 import me.stevenkin.boom.job.common.job.JobProcessor;
+import me.stevenkin.boom.job.common.job.RegisterService;
+import me.stevenkin.boom.job.common.kit.NameKit;
 import me.stevenkin.boom.job.common.support.Lifecycle;
 import me.stevenkin.boom.job.processor.annotation.BoomJob;
 
@@ -19,16 +21,19 @@ public class JobPool implements Lifecycle {
 
     private Map<String, JobProcessor> jobProcessorCache = new ConcurrentHashMap<>();
 
-    private ApplicationConfig application = new ApplicationConfig();
+    private ApplicationConfig application;
 
-    private RegistryConfig registry = new RegistryConfig();
+    private RegistryConfig registry;
 
     private Map<Class<? extends Job>, ServiceConfig<JobProcessor>> serviceCache = new ConcurrentHashMap<>();
 
-    //TODO job register service
+    private RegisterService registerService;
 
     public JobPool(BoomJobClient jobClient) {
         this.jobClient = jobClient;
+        this.application = jobClient.applicationConfig();
+        this.registry = jobClient.registerConfig();
+        this.registerService = jobClient.registerService();
     }
 
     public JobProcessor getJobProcessor(Class<? extends Job> jobClass) {
@@ -38,7 +43,9 @@ public class JobPool implements Lifecycle {
 
     public void registerJob(Job job) {
         String jobId = getJobId(job.getClass());
+        String jobName = job.getClass().getAnnotation(BoomJob.class).name();
         String jobVersion = job.getClass().getAnnotation(BoomJob.class).version();
+        String jobDescription = job.getClass().getAnnotation(BoomJob.class).description();
         JobProcessor jobProcessor = new SimpleJobProcessor(job, jobId, jobVersion, jobClient.executor());
         jobProcessorCache.put(jobId, jobProcessor);
         if (serviceCache.get(job.getClass()) != null)
@@ -51,27 +58,24 @@ public class JobPool implements Lifecycle {
 
         service.export();
         serviceCache.put(job.getClass(), service);
-        //TODO report job info
+
+        registerService.registerJobInfo(new JobInfo(
+                jobClient.appName(), jobClient.author(), job.getClass().getCanonicalName(), jobName, jobVersion, jobDescription));
     }
 
     @Override
     public void start() {
-        this.application.setName(jobClient.appName());
-        this.registry.setAddress(jobClient.zkHosts());
-        this.registry.setProtocol("zookeeper");
-        //TODO start job register service
+
     }
 
     @Override
     public void shutdown() {
         serviceCache.values().forEach(ServiceConfig::unexport);
-        //TODO shutdown job register service
         serviceCache.clear();
         jobProcessorCache.clear();
     }
 
     private String getJobId(Class<? extends Job> jobClass){
-        return Joiner.on(".").join(
-                new String[]{jobClient.author(), jobClient.appName(), jobClass.getCanonicalName()});
+        return NameKit.getJobId(jobClient.author(), jobClient.appName(), jobClass.getCanonicalName());
     }
 }

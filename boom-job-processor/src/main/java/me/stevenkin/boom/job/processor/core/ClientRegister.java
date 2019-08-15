@@ -2,7 +2,9 @@ package me.stevenkin.boom.job.processor.core;
 
 import com.google.common.base.Throwables;
 import lombok.extern.slf4j.Slf4j;
+import me.stevenkin.boom.job.common.bean.AppInfo;
 import me.stevenkin.boom.job.common.exception.ZKConnectException;
+import me.stevenkin.boom.job.common.job.RegisterService;
 import me.stevenkin.boom.job.common.kit.PathKit;
 import me.stevenkin.boom.job.common.support.Lifecycle;
 import org.apache.curator.framework.CuratorFramework;
@@ -22,6 +24,8 @@ public class ClientRegister implements Lifecycle {
 
     private final Lock RESTART_LOCK = new ReentrantLock();
 
+    private BoomJobClient jobClient;
+
     private ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 
     private CuratorFramework framework;
@@ -34,10 +38,15 @@ public class ClientRegister implements Lifecycle {
 
     private String clientId;
 
-    public ClientRegister(String zkHosts, String namespace, String clientId) {
-        this.zkHosts = zkHosts;
-        this.namespace = namespace;
-        this.clientId = clientId;
+    private RegisterService registerService;
+
+    public ClientRegister(BoomJobClient jobClient) {
+        this.jobClient = jobClient;
+        this.zkHosts = jobClient.zkHosts();
+        this.namespace = jobClient.namespace();
+        this.appName = jobClient.appName();
+        this.clientId = jobClient.clientId();
+        this.registerService = jobClient.registerService();
     }
 
     private boolean started = false;
@@ -58,6 +67,8 @@ public class ClientRegister implements Lifecycle {
                 reconnectZk();
             }
         }, 1, 10, TimeUnit.SECONDS);
+        //register app info
+        registerService.registerAppInfo(new AppInfo(jobClient.appName(), jobClient.author()));
         started = true;
     }
 
