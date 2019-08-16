@@ -14,5 +14,5 @@ public class JobFireResponse implements Serializable {
     private static final long serialVersionUID = -5130877794594938052L;
 
     private JobFireResult jobFireResult;
-    private String processorId;
+    private String clientId;
 }

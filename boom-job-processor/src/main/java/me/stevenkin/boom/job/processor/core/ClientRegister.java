@@ -3,9 +3,11 @@ package me.stevenkin.boom.job.processor.core;
 import com.google.common.base.Throwables;
 import lombok.extern.slf4j.Slf4j;
 import me.stevenkin.boom.job.common.bean.AppInfo;
+import me.stevenkin.boom.job.common.bean.RegisterResponse;
 import me.stevenkin.boom.job.common.exception.ZKConnectException;
 import me.stevenkin.boom.job.common.job.RegisterService;
 import me.stevenkin.boom.job.common.kit.PathKit;
+import me.stevenkin.boom.job.common.kit.ZkKit;
 import me.stevenkin.boom.job.common.support.Lifecycle;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
@@ -20,7 +22,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 @Slf4j
 public class ClientRegister implements Lifecycle {
-    private static final String ZKPREFIX = "/boom/app";
+    private static final String ZKPREFIX = "app";
 
     private final Lock RESTART_LOCK = new ReentrantLock();
 
@@ -56,6 +58,7 @@ public class ClientRegister implements Lifecycle {
         if (started)
             return;
         connectZk();
+        ZkKit.mkdir(PathKit.format(ZKPREFIX, appName), framework);
         scheduler.scheduleAtFixedRate(() -> {
             String appPath = PathKit.format(ZKPREFIX, appName, clientId);
             try {
@@ -68,7 +71,15 @@ public class ClientRegister implements Lifecycle {
             }
         }, 1, 10, TimeUnit.SECONDS);
         //register app info
-        registerService.registerAppInfo(new AppInfo(jobClient.appName(), jobClient.author()));
+        RegisterResponse response = registerService.registerAppInfo(new AppInfo(jobClient.appName(), jobClient.author()));
+        if (response.isFailed()) {
+            log.error("app {}/{} register failed", jobClient.author(), jobClient.appName());
+            throw new RuntimeException("app register failed");
+        }
+        if (response.isNoLinked()) {
+            log.error("app {}/{} can't find author be linked", jobClient.author(), jobClient.appName());
+            throw new RuntimeException("app no linked");
+        }
         started = true;
     }
 

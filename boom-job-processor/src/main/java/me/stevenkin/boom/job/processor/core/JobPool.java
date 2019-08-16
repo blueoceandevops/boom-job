@@ -5,6 +5,7 @@ import com.alibaba.dubbo.config.RegistryConfig;
 import com.alibaba.dubbo.config.ServiceConfig;
 import lombok.extern.slf4j.Slf4j;
 import me.stevenkin.boom.job.common.bean.JobInfo;
+import me.stevenkin.boom.job.common.bean.RegisterResponse;
 import me.stevenkin.boom.job.common.job.JobProcessor;
 import me.stevenkin.boom.job.common.job.RegisterService;
 import me.stevenkin.boom.job.common.kit.NameKit;
@@ -46,7 +47,7 @@ public class JobPool implements Lifecycle {
         String jobName = job.getClass().getAnnotation(BoomJob.class).name();
         String jobVersion = job.getClass().getAnnotation(BoomJob.class).version();
         String jobDescription = job.getClass().getAnnotation(BoomJob.class).description();
-        JobProcessor jobProcessor = new SimpleJobProcessor(job, jobId, jobVersion, jobClient.executor());
+        JobProcessor jobProcessor = new SimpleJobProcessor(job, jobId, jobVersion, jobClient);
         jobProcessorCache.put(jobId, jobProcessor);
         if (serviceCache.get(job.getClass()) != null)
             return;
@@ -54,13 +55,21 @@ public class JobPool implements Lifecycle {
         service.setApplication(application);
         service.setRegistry(registry);
         service.setInterface(JobProcessor.class);
+        service.setGroup(jobId);
+        service.setVersion(jobVersion);
         service.setRef(jobProcessor);
 
         service.export();
         serviceCache.put(job.getClass(), service);
 
-        registerService.registerJobInfo(new JobInfo(
+        RegisterResponse response = registerService.registerJobInfo(new JobInfo(
                 jobClient.appName(), jobClient.author(), job.getClass().getCanonicalName(), jobName, jobVersion, jobDescription));
+        if (response.isFailed()) {
+            log.error("job {}/{} register failed", jobId, jobVersion);
+        }
+        else if (response.isNoLinked()) {
+            log.error("job {}/{} can't find app be linked", jobId, jobVersion);
+        }
     }
 
     @Override
@@ -76,6 +85,6 @@ public class JobPool implements Lifecycle {
     }
 
     private String getJobId(Class<? extends Job> jobClass){
-        return NameKit.getJobId(jobClient.author(), jobClient.appName(), jobClass.getCanonicalName());
+        return NameKit.getJobId(jobClient.appName(), jobClient.author(), jobClass.getCanonicalName());
     }
 }

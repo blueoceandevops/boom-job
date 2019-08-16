@@ -13,10 +13,4 @@ public interface JobProcessor {
      * @return JobFireResponse
      */
     JobFireResponse fireJob(JobFireRequest request);
-
-    /**
-     * report this job's execute result info to schedule server
-     * @param report
-     */
-    void reportJobExecInfo(JobExecReport report);
 }

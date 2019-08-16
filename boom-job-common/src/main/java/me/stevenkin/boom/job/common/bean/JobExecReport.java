@@ -17,7 +17,7 @@ public class JobExecReport implements Serializable{
     private String jobType;
     private String jobInstanceId;
     private String jobShardId;
-    private String processorId;
+    private String clientId;
     private JobResult jobResult;
     private Instant startTime;
     private Instant endTime;

@@ -4,6 +4,7 @@ import com.alibaba.dubbo.config.ApplicationConfig;
 import com.alibaba.dubbo.config.ReferenceConfig;
 import com.alibaba.dubbo.config.RegistryConfig;
 import com.alibaba.dubbo.config.utils.ReferenceConfigCache;
+import me.stevenkin.boom.job.common.job.JobExecReportService;
 import me.stevenkin.boom.job.common.job.JobProcessor;
 import me.stevenkin.boom.job.common.job.RegisterService;
 import me.stevenkin.boom.job.common.kit.ExecutorKit;
@@ -41,7 +42,11 @@ public class SimpleBoomJobClient implements BoomJobClient, Lifecycle{
 
     private RegisterService registerService;
 
-    private ReferenceConfig<RegisterService> reference;
+    private JobExecReportService jobExecReportService;
+
+    private ReferenceConfig<RegisterService> referRegister;
+
+    private ReferenceConfig<JobExecReportService> referReport;
 
     private ReferenceConfigCache cache = ReferenceConfigCache.getCache();
 
@@ -52,17 +57,23 @@ public class SimpleBoomJobClient implements BoomJobClient, Lifecycle{
         this.zkHosts = zkHosts;
         this.namespace = namespace;
         this.executeThreadCount = executeThreadCount;
-        this.clientRegister = new ClientRegister(this);
         this.executor = ExecutorKit.newExecutor(executeThreadCount, 10000, "job-executor-");
-        this.jobPool = new JobPool(this);
         this.application.setName(NameKit.getAppId(appName, author));
         this.registry.setAddress(zkHosts);
         this.registry.setProtocol("zookeeper");
-        this.reference = new ReferenceConfig<>();
-        this.reference.setApplication(application);
-        this.reference.setRegistry(registry);
-        this.reference.setInterface(RegisterService.class);
-        this.registerService = cache.get(reference);
+        this.referRegister = new ReferenceConfig<>();
+        this.referReport = new ReferenceConfig<>();
+        this.referRegister.setApplication(application);
+        this.referRegister.setRegistry(registry);
+        this.referRegister.setInterface(RegisterService.class);
+        this.referReport.setApplication(application);
+        this.referReport.setRegistry(registry);
+        this.referReport.setInterface(JobExecReportService.class);
+        this.registerService = cache.get(referRegister);
+        this.jobExecReportService = cache.get(referReport);
+
+        this.jobPool = new JobPool(this);
+        this.clientRegister = new ClientRegister(this);
     }
 
     @Override
@@ -116,6 +127,11 @@ public class SimpleBoomJobClient implements BoomJobClient, Lifecycle{
     }
 
     @Override
+    public JobExecReportService jobExecReportService() {
+        return jobExecReportService;
+    }
+
+    @Override
     public ExecutorService executor() {
         return executor;
     }
@@ -141,5 +157,7 @@ public class SimpleBoomJobClient implements BoomJobClient, Lifecycle{
     public void shutdown() {
         clientRegister.shutdown();
         jobPool.shutdown();
+        cache.destroy(referRegister);
+        cache.destroy(referReport);
     }
 }

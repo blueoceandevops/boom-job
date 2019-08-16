@@ -15,4 +15,5 @@ public class JobContext {
     private String jobShardIndex;
     private String jobShardParam;
     private Integer jobShardCount;
+    private String schedulerId;
 }
