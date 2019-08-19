@@ -21,18 +21,15 @@ public class SimpleJobProcessor implements JobProcessor {
 
     private String jobId;
 
-    private String jobVersion;
-
     private BoomJobClient jobClient;
 
     private ExecutorService executor;
 
     private JobExecReportService jobExecReportService;
 
-    public SimpleJobProcessor(Job job, String jobId, String jobVersion, BoomJobClient jobClient) {
+    public SimpleJobProcessor(Job job, String jobId, BoomJobClient jobClient) {
         this.job = job;
         this.jobId = jobId;
-        this.jobVersion = jobVersion;
         this.jobClient = jobClient;
         this.executor = jobClient.executor();
         this.jobExecReportService = jobClient.jobExecReportService();
@@ -44,7 +41,7 @@ public class SimpleJobProcessor implements JobProcessor {
             return new JobFireResponse(JobFireResult.FIRE_FAILED, jobClient.clientId());
         }
         executor.submit(() -> {
-            log.info("job {}/{} is fired", jobId, jobVersion);
+            log.info("job {} is fired", jobId);
             JobResult result;
             Throwable error = null;
             Instant startTime = Instant.now();
@@ -56,7 +53,7 @@ public class SimpleJobProcessor implements JobProcessor {
                 result = JobResult.FAIL;
                 error = throwable;
                 endTime = Instant.now();
-                log.error("some error happen when job {}/{} is executing", jobId, jobVersion, throwable);
+                log.error("some error happen when job {} is executing", jobId, throwable);
             }
             JobExecReport jobExecReport = new JobExecReport();
             BeanUtils.copyProperties(request, jobExecReport);

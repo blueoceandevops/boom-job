@@ -14,8 +14,6 @@ public class JobInfo implements Serializable{
 
     private String appName;
     private String author;
+    private String version;
     private String jobClassName;
-    private String jobName;
-    private String jobVersion;
-    private String jobDescription;
 }

@@ -10,7 +10,6 @@ import me.stevenkin.boom.job.common.job.JobProcessor;
 import me.stevenkin.boom.job.common.job.RegisterService;
 import me.stevenkin.boom.job.common.kit.NameKit;
 import me.stevenkin.boom.job.common.support.Lifecycle;
-import me.stevenkin.boom.job.processor.annotation.BoomJob;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -44,31 +43,28 @@ public class JobPool implements Lifecycle {
 
     public void registerJob(Job job) {
         String jobId = getJobId(job.getClass());
-        String jobName = job.getClass().getAnnotation(BoomJob.class).name();
-        String jobVersion = job.getClass().getAnnotation(BoomJob.class).version();
-        String jobDescription = job.getClass().getAnnotation(BoomJob.class).description();
-        JobProcessor jobProcessor = new SimpleJobProcessor(job, jobId, jobVersion, jobClient);
+        JobProcessor jobProcessor = new SimpleJobProcessor(job, jobId, jobClient);
         jobProcessorCache.put(jobId, jobProcessor);
         if (serviceCache.get(job.getClass()) != null)
             return;
         ServiceConfig<JobProcessor> service = new ServiceConfig<>();
         service.setApplication(application);
         service.setRegistry(registry);
+        service.setProtocol(jobClient.protocolConfig());
         service.setInterface(JobProcessor.class);
         service.setGroup(jobId);
-        service.setVersion(jobVersion);
         service.setRef(jobProcessor);
 
         service.export();
         serviceCache.put(job.getClass(), service);
 
         RegisterResponse response = registerService.registerJobInfo(new JobInfo(
-                jobClient.appName(), jobClient.author(), job.getClass().getCanonicalName(), jobName, jobVersion, jobDescription));
+                jobClient.appName(), jobClient.author(), jobClient.version(), job.getClass().getCanonicalName()));
         if (response.isFailed()) {
-            log.error("job {}/{} register failed", jobId, jobVersion);
+            log.error("job {} register failed", jobId);
         }
         else if (response.isNoLinked()) {
-            log.error("job {}/{} can't find app be linked", jobId, jobVersion);
+            log.error("job {} can't find app be linked", jobId);
         }
     }
 
@@ -85,6 +81,6 @@ public class JobPool implements Lifecycle {
     }
 
     private String getJobId(Class<? extends Job> jobClass){
-        return NameKit.getJobId(jobClient.appName(), jobClient.author(), jobClass.getCanonicalName());
+        return NameKit.getJobId(jobClient.appName(), jobClient.author(), jobClient.version(), jobClass.getCanonicalName());
     }
 }

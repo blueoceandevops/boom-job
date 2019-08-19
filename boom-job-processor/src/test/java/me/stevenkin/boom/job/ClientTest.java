@@ -1,9 +1,6 @@
 package me.stevenkin.boom.job;
 
-import com.alibaba.dubbo.config.ApplicationConfig;
-import com.alibaba.dubbo.config.ReferenceConfig;
-import com.alibaba.dubbo.config.RegistryConfig;
-import com.alibaba.dubbo.config.ServiceConfig;
+import com.alibaba.dubbo.config.*;
 import lombok.extern.slf4j.Slf4j;
 import me.stevenkin.boom.job.common.bean.JobFireRequest;
 import me.stevenkin.boom.job.common.bean.JobFireResponse;
@@ -23,10 +20,15 @@ public class ClientTest {
         application.setName("test");
         registry.setAddress("192.168.99.100:2181");
         registry.setProtocol("zookeeper");
+        ProtocolConfig protocol = new ProtocolConfig();
+        protocol.setName("dubbo");
+        protocol.setPort(-1);
+        protocol.setThreads(200);
 
         ServiceConfig<RegisterService> service1 = new ServiceConfig<>();
         service1.setApplication(application);
         service1.setRegistry(registry);
+        service1.setProtocol(protocol);
         service1.setInterface(RegisterService.class);
         service1.setRef(new RegisterServiceTest());
         service1.export();
@@ -34,12 +36,13 @@ public class ClientTest {
         ServiceConfig<JobExecReportService> service2 = new ServiceConfig<>();
         service2.setApplication(application);
         service2.setRegistry(registry);
+        service2.setProtocol(protocol);
         service2.setInterface(JobExecReportService.class);
         service2.setRef(new JobReportServiceTest());
         service2.export();
 
         BoomJobClient jobClient = new SimpleBoomJobClient(
-                "test", "stevenkin", "wjg",
+                "test", "stevenkin","0.0.1", "wjg",
                 "192.168.99.100:2181", "boom", 1);
         jobClient.start();
         jobClient.registerJob(new TestJob());
@@ -48,11 +51,10 @@ public class ClientTest {
         reference.setApplication(application);
         reference.setRegistry(registry);
         reference.setInterface(JobProcessor.class);
-        reference.setGroup("stevenkin.test.me.stevenkin.boom.job.TestJob");
-        reference.setVersion("0.0.1");
+        reference.setGroup("stevenkin_test_0.0.1_me.stevenkin.boom.job.TestJob");
         JobProcessor jobProcessor = reference.get();
         JobFireResponse response = jobProcessor.fireJob(new JobFireRequest(
-                "stevenkin.test.me.stevenkin.boom.job.TestJob",
+                "stevenkin_test_0.0.1_me.stevenkin.boom.job.TestJob",
                 "default",
                 "0",
                 "0",

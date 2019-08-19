@@ -14,4 +14,5 @@ public class AppInfo implements Serializable{
 
     private String appName;
     private String author;
+    private String version;
 }

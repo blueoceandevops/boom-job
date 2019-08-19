@@ -1,6 +1,7 @@
 package me.stevenkin.boom.job.processor.core;
 
 import com.alibaba.dubbo.config.ApplicationConfig;
+import com.alibaba.dubbo.config.ProtocolConfig;
 import com.alibaba.dubbo.config.ReferenceConfig;
 import com.alibaba.dubbo.config.RegistryConfig;
 import com.alibaba.dubbo.config.utils.ReferenceConfigCache;
@@ -19,6 +20,8 @@ public class SimpleBoomJobClient implements BoomJobClient, Lifecycle{
     private String appName;
 
     private String author;
+
+    private String version;
 
     private String appSecret;
 
@@ -40,6 +43,8 @@ public class SimpleBoomJobClient implements BoomJobClient, Lifecycle{
 
     private RegistryConfig registry = new RegistryConfig();
 
+    private ProtocolConfig protocol = new ProtocolConfig();
+
     private RegisterService registerService;
 
     private JobExecReportService jobExecReportService;
@@ -50,17 +55,21 @@ public class SimpleBoomJobClient implements BoomJobClient, Lifecycle{
 
     private ReferenceConfigCache cache = ReferenceConfigCache.getCache();
 
-    public SimpleBoomJobClient(String appName, String author, String appSecret, String zkHosts, String namespace, Integer executeThreadCount) {
+    public SimpleBoomJobClient(String appName, String author, String version, String appSecret, String zkHosts, String namespace, Integer executeThreadCount) {
         this.appName = appName;
         this.author = author;
+        this.version = version;
         this.appSecret = appSecret;
         this.zkHosts = zkHosts;
         this.namespace = namespace;
         this.executeThreadCount = executeThreadCount;
         this.executor = ExecutorKit.newExecutor(executeThreadCount, 10000, "job-executor-");
-        this.application.setName(NameKit.getAppId(appName, author));
+        this.application.setName(NameKit.getAppId(appName, author, version));
         this.registry.setAddress(zkHosts);
         this.registry.setProtocol("zookeeper");
+        this.protocol.setName("dubbo");
+        this.protocol.setPort(-1);
+        this.protocol.setThreads(200);
         this.referRegister = new ReferenceConfig<>();
         this.referReport = new ReferenceConfig<>();
         this.referRegister.setApplication(application);
@@ -84,6 +93,11 @@ public class SimpleBoomJobClient implements BoomJobClient, Lifecycle{
     @Override
     public String author() {
         return author;
+    }
+
+    @Override
+    public String version() {
+        return version;
     }
 
     @Override
@@ -119,6 +133,11 @@ public class SimpleBoomJobClient implements BoomJobClient, Lifecycle{
     @Override
     public RegistryConfig registerConfig() {
         return registry;
+    }
+
+    @Override
+    public ProtocolConfig protocolConfig() {
+        return protocol;
     }
 
     @Override

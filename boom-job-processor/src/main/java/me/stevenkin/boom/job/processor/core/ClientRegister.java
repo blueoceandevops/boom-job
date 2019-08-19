@@ -6,6 +6,7 @@ import me.stevenkin.boom.job.common.bean.AppInfo;
 import me.stevenkin.boom.job.common.bean.RegisterResponse;
 import me.stevenkin.boom.job.common.exception.ZKConnectException;
 import me.stevenkin.boom.job.common.job.RegisterService;
+import me.stevenkin.boom.job.common.kit.NameKit;
 import me.stevenkin.boom.job.common.kit.PathKit;
 import me.stevenkin.boom.job.common.kit.ZkKit;
 import me.stevenkin.boom.job.common.support.Lifecycle;
@@ -36,7 +37,11 @@ public class ClientRegister implements Lifecycle {
 
     private String namespace;
 
+    private String author;
+
     private String appName;
+
+    private String version;
 
     private String clientId;
 
@@ -46,7 +51,9 @@ public class ClientRegister implements Lifecycle {
         this.jobClient = jobClient;
         this.zkHosts = jobClient.zkHosts();
         this.namespace = jobClient.namespace();
+        this.author = jobClient.author();
         this.appName = jobClient.appName();
+        this.version = jobClient.version();
         this.clientId = jobClient.clientId();
         this.registerService = jobClient.registerService();
     }
@@ -58,9 +65,10 @@ public class ClientRegister implements Lifecycle {
         if (started)
             return;
         connectZk();
-        ZkKit.mkdir(PathKit.format(ZKPREFIX, appName), framework);
+        String appId = NameKit.getAppId(appName, author, version);
+        ZkKit.mkdir(PathKit.format(jobClient.namespace(), ZKPREFIX, appId), framework);
         scheduler.scheduleAtFixedRate(() -> {
-            String appPath = PathKit.format(ZKPREFIX, appName, clientId);
+            String appPath = PathKit.format(ZKPREFIX, appId, clientId);
             try {
                 if (framework.checkExists().forPath(appPath) == null){
                     framework.create().withMode(CreateMode.EPHEMERAL).forPath(appPath, null);
@@ -71,13 +79,13 @@ public class ClientRegister implements Lifecycle {
             }
         }, 1, 10, TimeUnit.SECONDS);
         //register app info
-        RegisterResponse response = registerService.registerAppInfo(new AppInfo(jobClient.appName(), jobClient.author()));
+        RegisterResponse response = registerService.registerAppInfo(new AppInfo(jobClient.appName(), jobClient.author(), jobClient.version()));
         if (response.isFailed()) {
-            log.error("app {}/{} register failed", jobClient.author(), jobClient.appName());
+            log.error("app {}/{}/{} register failed", jobClient.author(), jobClient.appName(), jobClient.version());
             throw new RuntimeException("app register failed");
         }
         if (response.isNoLinked()) {
-            log.error("app {}/{} can't find author be linked", jobClient.author(), jobClient.appName());
+            log.error("app {}/{}/{} can't find author be linked", jobClient.author(), jobClient.appName(), jobClient.version());
             throw new RuntimeException("app no linked");
         }
         started = true;
