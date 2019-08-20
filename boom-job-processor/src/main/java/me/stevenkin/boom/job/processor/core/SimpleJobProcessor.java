@@ -5,8 +5,9 @@ import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import me.stevenkin.boom.job.common.bean.*;
 import me.stevenkin.boom.job.common.enums.JobFireResult;
-import me.stevenkin.boom.job.common.job.JobExecReportService;
-import me.stevenkin.boom.job.common.job.JobProcessor;
+import me.stevenkin.boom.job.common.service.JobExecuteService;
+import me.stevenkin.boom.job.common.service.JobProcessor;
+import me.stevenkin.boom.job.processor.service.ShardExecuteService;
 import org.springframework.beans.BeanUtils;
 
 import java.time.Instant;
@@ -25,14 +26,17 @@ public class SimpleJobProcessor implements JobProcessor {
 
     private ExecutorService executor;
 
-    private JobExecReportService jobExecReportService;
+    private JobExecuteService jobExecuteService;
+
+    private ShardExecuteService shardExecuteService;
 
     public SimpleJobProcessor(Job job, String jobId, BoomJobClient jobClient) {
         this.job = job;
         this.jobId = jobId;
         this.jobClient = jobClient;
         this.executor = jobClient.executor();
-        this.jobExecReportService = jobClient.jobExecReportService();
+        this.jobExecuteService = jobClient.jobExecuteService();
+        this.shardExecuteService = jobClient.shardExecuteService();
     }
 
     @Override
@@ -40,34 +44,67 @@ public class SimpleJobProcessor implements JobProcessor {
         if (!request.getJobId().equals(jobId)) {
             return new JobFireResponse(JobFireResult.FIRE_FAILED, jobClient.clientId());
         }
+        Long jobInstanceId = request.getJobInstanceId();
         executor.submit(() -> {
-            log.info("job {} is fired", jobId);
-            JobResult result;
-            Throwable error = null;
-            Instant startTime = Instant.now();
-            Instant endTime;
-            try {
-                result = job.execute(buildJobContext(request));
-                endTime = Instant.now();
-            } catch (Throwable throwable) {
-                result = JobResult.FAIL;
-                error = throwable;
-                endTime = Instant.now();
-                log.error("some error happen when job {} is executing", jobId, throwable);
-            }
-            JobExecReport jobExecReport = new JobExecReport();
-            BeanUtils.copyProperties(request, jobExecReport);
-            jobExecReport.setClientId(jobClient.clientId());
-            jobExecReport.setJobResult(result);
-            jobExecReport.setException(error);
-            jobExecReport.setStartTime(startTime);
-            jobExecReport.setEndTime(endTime);
-            jobExecReportService.reportJobExecResult(jobExecReport);
+            log.info("service {} is fired", jobId);
+            Long fetchShardCount = request.getFetchShardCount();
+            boolean first = true;
+            do{
+                if (!first) {
+                    fetchShardCount += jobExecuteService.fetchMoreShardCount(jobInstanceId);
+                }
+                if (first) {
+                    first = false;
+                }
+                while (fetchShardCount > 0) {
+                    FetchShardResponse response = jobExecuteService.fetchOneShard(jobInstanceId);
+                    if (response == null) {
+                        continue;
+                    }
+                    if (response.getInstanceIsFinal()) {
+                        break;
+                    }
+                    if (response.getJobInstanceShard() == null) {
+                        continue;
+                    }
+                    JobInstanceShardVo jobInstanceShardVo = response.getJobInstanceShard();
+                    if (!shardExecuteService.insertShardExecTurnover(jobInstanceShardVo.getJobShardId(),
+                            jobClient.clientId(), Instant.now()))
+                        continue;
+                    JobExecReport jobExecReport = executeJobShard(jobInstanceShardVo);
+                    jobExecuteService.reportJobExecResult(jobExecReport);
+                    fetchShardCount--;
+                }
+            } while (!jobExecuteService.checkJobInstanceIsFinal(jobInstanceId));
         });
         return new JobFireResponse(JobFireResult.FIRE_SUCCESS, jobClient.clientId());
     }
 
-    private JobContext buildJobContext(JobFireRequest request) {
+    private JobExecReport executeJobShard(JobInstanceShardVo shardVo) {
+        JobResult result;
+        Throwable error = null;
+        Instant startTime = Instant.now();
+        Instant endTime;
+        try {
+            result = job.execute(buildJobContext(shardVo));
+            endTime = Instant.now();
+        } catch (Throwable throwable) {
+            result = JobResult.FAIL;
+            error = throwable;
+            endTime = Instant.now();
+            log.error("some error happen when service {} is executing", jobId, throwable);
+        }
+        JobExecReport jobExecReport = new JobExecReport();
+        BeanUtils.copyProperties(shardVo, jobExecReport);
+        jobExecReport.setClientId(jobClient.clientId());
+        jobExecReport.setJobResult(result);
+        jobExecReport.setException(error);
+        jobExecReport.setStartTime(startTime);
+        jobExecReport.setEndTime(endTime);
+        return jobExecReport;
+    }
+
+    private JobContext buildJobContext(JobInstanceShardVo request) {
         JobContext jobContext = new JobContext();
         BeanUtils.copyProperties(request, jobContext);
         return jobContext;

@@ -14,10 +14,7 @@ public class JobFireRequest implements Serializable{
 
     private String jobId;
     private String jobType;
-    private String jobInstanceId;
-    private String jobShardId;
-    private Long jobShardIndex;
-    private String jobShardParam;
-    private Long jobShardCount;
+    private Long jobInstanceId;
+    private Long fetchShardCount;
     private String schedulerId;
 }

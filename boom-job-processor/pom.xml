@@ -18,6 +18,11 @@
             <version>0.0.1</version>
         </dependency>
         <dependency>
+            <groupId>me.stevenkin</groupId>
+            <artifactId>boom-job-data</artifactId>
+            <version>0.0.1</version>
+        </dependency>
+        <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
         </dependency>

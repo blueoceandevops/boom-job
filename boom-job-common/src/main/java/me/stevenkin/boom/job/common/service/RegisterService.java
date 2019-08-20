@@ -1,4 +1,4 @@
-package me.stevenkin.boom.job.common.job;
+package me.stevenkin.boom.job.common.service;
 
 import me.stevenkin.boom.job.common.bean.AppInfo;
 import me.stevenkin.boom.job.common.bean.JobInfo;

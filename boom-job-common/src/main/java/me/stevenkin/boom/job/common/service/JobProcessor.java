@@ -1,14 +1,12 @@
-package me.stevenkin.boom.job.common.job;
+package me.stevenkin.boom.job.common.service;
 
-import me.stevenkin.boom.job.common.bean.JobExecReport;
 import me.stevenkin.boom.job.common.bean.JobFireRequest;
 import me.stevenkin.boom.job.common.bean.JobFireResponse;
-import me.stevenkin.boom.job.common.support.Lifecycle;
 
 public interface JobProcessor {
 
     /**
-     * fire this job
+     * fire this service
      * @param request
      * @return JobFireResponse
      */

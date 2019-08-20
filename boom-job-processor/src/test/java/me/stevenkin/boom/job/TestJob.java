@@ -11,7 +11,7 @@ import me.stevenkin.boom.job.processor.core.Job;
 public class TestJob implements Job{
     @Override
     public JobResult execute(JobContext jobContext) throws Throwable {
-        log.info("Test job is running");
+        log.info("Test service is running");
         return JobResult.SUCCESS;
     }
 }

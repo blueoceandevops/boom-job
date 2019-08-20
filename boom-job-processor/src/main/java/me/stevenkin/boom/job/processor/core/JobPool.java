@@ -6,8 +6,8 @@ import com.alibaba.dubbo.config.ServiceConfig;
 import lombok.extern.slf4j.Slf4j;
 import me.stevenkin.boom.job.common.bean.JobInfo;
 import me.stevenkin.boom.job.common.bean.RegisterResponse;
-import me.stevenkin.boom.job.common.job.JobProcessor;
-import me.stevenkin.boom.job.common.job.RegisterService;
+import me.stevenkin.boom.job.common.service.JobProcessor;
+import me.stevenkin.boom.job.common.service.RegisterService;
 import me.stevenkin.boom.job.common.kit.NameKit;
 import me.stevenkin.boom.job.common.support.Lifecycle;
 
@@ -61,10 +61,10 @@ public class JobPool implements Lifecycle {
         RegisterResponse response = registerService.registerJobInfo(new JobInfo(
                 jobClient.appName(), jobClient.author(), jobClient.version(), job.getClass().getCanonicalName()));
         if (response.isFailed()) {
-            log.error("job {} register failed", jobId);
+            log.error("service {} register failed", jobId);
         }
         else if (response.isNoLinked()) {
-            log.error("job {} can't find app be linked", jobId);
+            log.error("service {} can't find app be linked", jobId);
         }
     }
 
