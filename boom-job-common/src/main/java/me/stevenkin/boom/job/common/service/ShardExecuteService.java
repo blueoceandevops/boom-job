@@ -1,4 +1,4 @@
-package me.stevenkin.boom.job.processor.service;
+package me.stevenkin.boom.job.common.service;
 
 import java.time.Instant;
 

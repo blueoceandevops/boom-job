@@ -1,12 +1,14 @@
-package me.stevenkin.boom.job.processor.service.impl;
+package me.stevenkin.boom.job.scheduler.service.impl;
 
+import lombok.extern.slf4j.Slf4j;
 import me.stevenkin.boom.job.data.dao.JobInstanceShardMapper;
-import me.stevenkin.boom.job.processor.service.ShardExecuteService;
+import me.stevenkin.boom.job.common.service.ShardExecuteService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 
+@Slf4j
 @Service
 public class ShardExecuteServiceImpl implements ShardExecuteService {
 
@@ -18,6 +20,7 @@ public class ShardExecuteServiceImpl implements ShardExecuteService {
         try {
             jobInstanceShardMapper.insertShardExecTurnover(jobShardId, clientId, instant);
         }catch (Exception e) {
+            log.error("insert shard execute turnover failed", e);
             return false;
         }
         return true;

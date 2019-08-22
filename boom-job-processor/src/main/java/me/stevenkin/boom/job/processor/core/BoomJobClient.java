@@ -7,7 +7,7 @@ import me.stevenkin.boom.job.common.service.JobExecuteService;
 import me.stevenkin.boom.job.common.service.JobProcessor;
 import me.stevenkin.boom.job.common.service.RegisterService;
 import me.stevenkin.boom.job.common.support.Lifecycle;
-import me.stevenkin.boom.job.processor.service.ShardExecuteService;
+import me.stevenkin.boom.job.common.service.ShardExecuteService;
 
 import java.util.concurrent.ExecutorService;
 

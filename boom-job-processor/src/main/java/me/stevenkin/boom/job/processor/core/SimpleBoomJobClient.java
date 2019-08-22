@@ -12,8 +12,7 @@ import me.stevenkin.boom.job.common.kit.ExecutorKit;
 import me.stevenkin.boom.job.common.kit.NameKit;
 import me.stevenkin.boom.job.common.kit.SystemKit;
 import me.stevenkin.boom.job.common.support.Lifecycle;
-import me.stevenkin.boom.job.processor.service.ShardExecuteService;
-import org.springframework.beans.factory.annotation.Autowired;
+import me.stevenkin.boom.job.common.service.ShardExecuteService;
 
 import java.util.concurrent.ExecutorService;
 
@@ -51,15 +50,17 @@ public class SimpleBoomJobClient implements BoomJobClient, Lifecycle{
 
     private JobExecuteService jobExecuteService;
 
+    private ShardExecuteService shardExecuteService;
+
     private ReferenceConfig<RegisterService> referRegister;
 
-    private ReferenceConfig<JobExecuteService> referReport;
+    private ReferenceConfig<JobExecuteService> referJob;
+
+    private ReferenceConfig<ShardExecuteService> referShard;
 
     private ReferenceConfigCache cache = ReferenceConfigCache.getCache();
 
-    private ShardExecuteService shardExecuteService;
-
-    public SimpleBoomJobClient(String appName, String author, String version, String appSecret, String zkHosts, String namespace, Integer executeThreadCount, ShardExecuteService shardExecuteService) {
+    public SimpleBoomJobClient(String appName, String author, String version, String appSecret, String zkHosts, String namespace, Integer executeThreadCount) {
         this.appName = appName;
         this.author = author;
         this.version = version;
@@ -74,18 +75,26 @@ public class SimpleBoomJobClient implements BoomJobClient, Lifecycle{
         this.protocol.setName("dubbo");
         this.protocol.setPort(-1);
         this.protocol.setThreads(200);
+
         this.referRegister = new ReferenceConfig<>();
-        this.referReport = new ReferenceConfig<>();
+        this.referJob = new ReferenceConfig<>();
+        this.referShard = new ReferenceConfig<>();
+
         this.referRegister.setApplication(application);
         this.referRegister.setRegistry(registry);
         this.referRegister.setInterface(RegisterService.class);
-        this.referReport.setApplication(application);
-        this.referReport.setRegistry(registry);
-        this.referReport.setInterface(JobExecuteService.class);
-        this.registerService = cache.get(referRegister);
-        this.jobExecuteService = cache.get(referReport);
 
-        this.shardExecuteService = shardExecuteService;
+        this.referJob.setApplication(application);
+        this.referJob.setRegistry(registry);
+        this.referJob.setInterface(JobExecuteService.class);
+
+        this.referShard.setApplication(application);
+        this.referShard.setRegistry(registry);
+        this.referShard.setInterface(ShardExecuteService.class);
+
+        this.registerService = cache.get(referRegister);
+        this.jobExecuteService = cache.get(referJob);
+        this.shardExecuteService = cache.get(referShard);
 
         this.jobPool = new JobPool(this);
         this.clientRegister = new ClientRegister(this);
@@ -180,7 +189,7 @@ public class SimpleBoomJobClient implements BoomJobClient, Lifecycle{
     public void start() {
         clientRegister.start();
         jobPool.start();
-        Runtime.getRuntime().addShutdownHook(new Thread(this::shutdown));
+        Runtime.getRuntime().addShutdownHook(new Thread(this::shutdown, "BoomShutdownHook"));
     }
 
     @Override
@@ -188,6 +197,7 @@ public class SimpleBoomJobClient implements BoomJobClient, Lifecycle{
         clientRegister.shutdown();
         jobPool.shutdown();
         cache.destroy(referRegister);
-        cache.destroy(referReport);
+        cache.destroy(referJob);
+        cache.destroy(referShard);
     }
 }

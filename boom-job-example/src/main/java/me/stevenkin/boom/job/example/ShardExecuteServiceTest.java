@@ -1,6 +1,6 @@
-package me.stevenkin.boom.job;
+package me.stevenkin.boom.job.example;
 
-import me.stevenkin.boom.job.processor.service.ShardExecuteService;
+import me.stevenkin.boom.job.common.service.ShardExecuteService;
 
 import java.time.Instant;
 

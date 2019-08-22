@@ -1,4 +1,4 @@
-package me.stevenkin.boom.job;
+package me.stevenkin.boom.job.example;
 
 import lombok.extern.slf4j.Slf4j;
 import me.stevenkin.boom.job.common.bean.AppInfo;

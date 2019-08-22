@@ -1,4 +1,4 @@
-package me.stevenkin.boom.job;
+package me.stevenkin.boom.job.example;
 
 import com.alibaba.dubbo.config.*;
 import lombok.extern.slf4j.Slf4j;
@@ -7,10 +7,9 @@ import me.stevenkin.boom.job.common.bean.JobFireResponse;
 import me.stevenkin.boom.job.common.service.JobExecuteService;
 import me.stevenkin.boom.job.common.service.JobProcessor;
 import me.stevenkin.boom.job.common.service.RegisterService;
+import me.stevenkin.boom.job.common.service.ShardExecuteService;
 import me.stevenkin.boom.job.processor.core.BoomJobClient;
 import me.stevenkin.boom.job.processor.core.SimpleBoomJobClient;
-import me.stevenkin.boom.job.processor.service.ShardExecuteService;
-import me.stevenkin.boom.job.processor.service.impl.ShardExecuteServiceImpl;
 
 @Slf4j
 public class ClientTest {
@@ -43,11 +42,18 @@ public class ClientTest {
         service2.setRef(new JobExecuteServiceTest());
         service2.export();
 
-        ShardExecuteService shardExecuteService = new ShardExecuteServiceTest();
+        ServiceConfig<ShardExecuteService> service3 = new ServiceConfig<>();
+        service3.setApplication(application);
+        service3.setRegistry(registry);
+        service3.setProtocol(protocol);
+        service3.setInterface(ShardExecuteService.class);
+        service3.setRef(new ShardExecuteServiceTest());
+        service3.export();
+
 
         BoomJobClient jobClient = new SimpleBoomJobClient(
                 "test", "stevenkin","0.0.1", "wjg",
-                "192.168.99.100:2181", "boom", 1, shardExecuteService);
+                "192.168.99.100:2181", "boom", 1);
         jobClient.start();
         jobClient.registerJob(new TestJob());
 
@@ -55,10 +61,10 @@ public class ClientTest {
         reference.setApplication(application);
         reference.setRegistry(registry);
         reference.setInterface(JobProcessor.class);
-        reference.setGroup("stevenkin_test_0.0.1_me.stevenkin.boom.job.TestJob");
+        reference.setGroup("stevenkin_test_0.0.1_me.stevenkin.boom.job.example.TestJob");
         JobProcessor jobProcessor = reference.get();
         JobFireResponse response = jobProcessor.fireJob(new JobFireRequest(
-                "stevenkin_test_0.0.1_me.stevenkin.boom.job.TestJob",
+                "stevenkin_test_0.0.1_me.stevenkin.boom.job.example.TestJob",
                 "default",
                 0L,
                 3L,

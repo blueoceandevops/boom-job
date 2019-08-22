@@ -7,7 +7,7 @@ import me.stevenkin.boom.job.common.bean.*;
 import me.stevenkin.boom.job.common.enums.JobFireResult;
 import me.stevenkin.boom.job.common.service.JobExecuteService;
 import me.stevenkin.boom.job.common.service.JobProcessor;
-import me.stevenkin.boom.job.processor.service.ShardExecuteService;
+import me.stevenkin.boom.job.common.service.ShardExecuteService;
 import org.springframework.beans.BeanUtils;
 
 import java.time.Instant;
