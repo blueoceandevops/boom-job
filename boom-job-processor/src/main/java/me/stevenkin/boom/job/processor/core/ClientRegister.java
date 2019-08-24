@@ -4,9 +4,8 @@ import com.google.common.base.Throwables;
 import lombok.extern.slf4j.Slf4j;
 import me.stevenkin.boom.job.common.bean.AppInfo;
 import me.stevenkin.boom.job.common.bean.RegisterResponse;
-import me.stevenkin.boom.job.common.exception.ZKConnectException;
+import me.stevenkin.boom.job.common.exception.ZkException;
 import me.stevenkin.boom.job.common.service.RegisterService;
-import me.stevenkin.boom.job.common.kit.NameKit;
 import me.stevenkin.boom.job.common.kit.PathKit;
 import me.stevenkin.boom.job.common.kit.ZkKit;
 import me.stevenkin.boom.job.common.support.Lifecycle;
@@ -23,7 +22,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 @Slf4j
 public class ClientRegister implements Lifecycle {
-    private static final String ZKPREFIX = "app";
+    private static final String ZKPREFIX = "client";
 
     private final Lock RESTART_LOCK = new ReentrantLock();
 
@@ -65,10 +64,10 @@ public class ClientRegister implements Lifecycle {
         if (started)
             return;
         connectZk();
-        String appId = NameKit.getAppId(appName, author, version);
-        ZkKit.mkdir(PathKit.format(jobClient.namespace(), ZKPREFIX, appId), framework);
+        //String appId = NameKit.getAppId(appName, author, version);
+        ZkKit.mkdir(PathKit.format(jobClient.namespace(), ZKPREFIX), framework);
         scheduler.scheduleAtFixedRate(() -> {
-            String appPath = PathKit.format(ZKPREFIX, appId, clientId);
+            String appPath = PathKit.format(ZKPREFIX, clientId);
             try {
                 if (framework.checkExists().forPath(appPath) == null){
                     framework.create().withMode(CreateMode.EPHEMERAL).forPath(appPath, null);
@@ -115,7 +114,7 @@ public class ClientRegister implements Lifecycle {
             framework.blockUntilConnected(30, TimeUnit.SECONDS);
             log.info("client {} connect zk successfully", clientId);
         } catch (InterruptedException e) {
-            throw new ZKConnectException(e);
+            throw new ZkException(e);
         }
     }
 

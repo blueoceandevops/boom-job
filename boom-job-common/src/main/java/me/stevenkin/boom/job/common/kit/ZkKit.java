@@ -1,6 +1,6 @@
 package me.stevenkin.boom.job.common.kit;
 
-import me.stevenkin.boom.job.common.exception.ZKConnectException;
+import me.stevenkin.boom.job.common.exception.ZkException;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.utils.EnsurePath;
 
@@ -13,7 +13,7 @@ public class ZkKit {
             clientAppPathExist.ensure(framework.getZookeeperClient());
             return Boolean.TRUE;
         } catch (Exception e) {
-            throw new ZKConnectException(e);
+            throw new ZkException(e);
         }
     }
 }
