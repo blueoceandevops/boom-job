@@ -116,7 +116,7 @@
             <dependency>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-configuration-processor</artifactId>
-                <optional>true</optional>
+                <version>2.1.1.RELEASE</version>
             </dependency>
 
             <dependency>

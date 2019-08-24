@@ -60,7 +60,7 @@ public class SimpleBoomJobClient implements BoomJobClient, Lifecycle{
 
     private ReferenceConfigCache cache = ReferenceConfigCache.getCache();
 
-    public SimpleBoomJobClient(String appName, String author, String version, String appSecret, String zkHosts, String namespace, Integer executeThreadCount) {
+    public SimpleBoomJobClient(String appName, String author, String version, String appSecret, String zkHosts, String zkUsername, String zkPassword, String namespace, Integer timeout, Integer executeThreadCount) {
         this.appName = appName;
         this.author = author;
         this.version = version;
@@ -72,6 +72,8 @@ public class SimpleBoomJobClient implements BoomJobClient, Lifecycle{
         this.application.setName(NameKit.getAppId(appName, author, version));
         this.registry.setAddress(zkHosts);
         this.registry.setProtocol("zookeeper");
+        this.registry.setUsername(zkUsername);
+        this.registry.setPassword(zkPassword);
         this.protocol.setName("dubbo");
         this.protocol.setPort(-1);
         this.protocol.setThreads(200);
@@ -79,6 +81,14 @@ public class SimpleBoomJobClient implements BoomJobClient, Lifecycle{
         this.referRegister = new ReferenceConfig<>();
         this.referJob = new ReferenceConfig<>();
         this.referShard = new ReferenceConfig<>();
+
+        this.referRegister.setTimeout(timeout);
+        this.referJob.setTimeout(timeout);
+        this.referShard.setTimeout(timeout);
+
+        this.referRegister.setRetries(0);
+        this.referJob.setRetries(0);
+        this.referShard.setRetries(0);
 
         this.referRegister.setApplication(application);
         this.referRegister.setRegistry(registry);
