@@ -14,12 +14,24 @@ import org.springframework.context.annotation.Configuration;
 @AllArgsConstructor
 @Configuration
 public class BoomJobConfig {
+    private final static String CLIENT = "client";
+    private final static String SCHEDULER = "scheduler";
+    private final static String JOB = "job";
+    private final static String CLIENT_FAILOVER = "failover/client";
+    private final static String SCHEDULER_FAILOVER = "failover/scheduler";
+
     private DubboConfig dubbo;
     private ZkConfig zk;
     private QuartzConfig quartz;
 
     @Bean
     public ZkClient zkClient(){
-        return new ZkClient(zk.getHosts(), zk.getNamespace());
+        ZkClient zkClient = new ZkClient(zk.getHosts(), zk.getNamespace());
+        zkClient.mkdirs(CLIENT);
+        zkClient.mkdirs(SCHEDULER);
+        zkClient.mkdirs(JOB);
+        zkClient.mkdirs(CLIENT_FAILOVER);
+        zkClient.mkdirs(SCHEDULER_FAILOVER);
+        return zkClient;
     }
 }

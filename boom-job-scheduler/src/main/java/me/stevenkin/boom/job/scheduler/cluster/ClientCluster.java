@@ -1,5 +1,6 @@
 package me.stevenkin.boom.job.scheduler.cluster;
 
+import lombok.extern.slf4j.Slf4j;
 import me.stevenkin.boom.job.common.kit.PathKit;
 import me.stevenkin.boom.job.common.zk.ZkClient;
 import org.apache.curator.framework.recipes.cache.PathChildrenCache;
@@ -9,18 +10,21 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @Component
-public class ClientFailover implements InitializingBean, DisposableBean{
+@Slf4j
+public class ClientCluster implements InitializingBean, DisposableBean{
     private static final String CLIENT = "client";
-
-    private static final String CLIENT_FAILOVER = "failover/client";
 
     @Autowired
     private ZkClient zkClient;
 
     private PathChildrenCache cache;
 
+    private Map<String, AppClientCluster> appClientClusterMap = new HashMap<>();
 
     @Override
     public void destroy() throws Exception {
@@ -30,6 +34,7 @@ public class ClientFailover implements InitializingBean, DisposableBean{
             } catch (IOException e) {
             }
         }
+        appClientClusterMap.values().forEach(AppClientCluster::shutdown);
         if (zkClient != null) {
             zkClient.shutdown();
         }
@@ -37,12 +42,23 @@ public class ClientFailover implements InitializingBean, DisposableBean{
 
     @Override
     public void afterPropertiesSet() throws Exception {
-        zkClient.mkdirs(PathKit.format(zkClient.getNamespace(), CLIENT));
-        zkClient.mkdirs(PathKit.format(zkClient.getNamespace(), CLIENT_FAILOVER));
-        cache = zkClient.addNodeDeleteListener(PathKit.format(CLIENT), path -> {
-            String node = PathKit.lastNode(path);
-            zkClient.create(PathKit.format(CLIENT_FAILOVER, node));
+        String path = PathKit.format(CLIENT);
+        List<String> apps = zkClient.gets(path);
+        if (apps != null && !apps.isEmpty()) {
+            apps.forEach(this::addAppClientCluster);
+        }
+        cache = zkClient.addNodeAddListener(path, (p, data) -> {
+            String app = PathKit.lastNode(p);
+            addAppClientCluster(app);
         });
         cache.start();
+    }
+
+    private synchronized void addAppClientCluster(String app) {
+        if (!appClientClusterMap.containsKey(app)) {
+            AppClientCluster appClientCluster = new AppClientCluster(zkClient, app);
+            appClientCluster.start();
+            appClientClusterMap.put(app, appClientCluster);
+        }
     }
 }

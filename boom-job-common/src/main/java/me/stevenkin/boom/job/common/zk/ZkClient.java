@@ -539,7 +539,7 @@ public class ZkClient{
                 return Collections.emptyList();
             }
 
-            return client.getChildren().forPath(path);
+            return client.getChildren().forPath(slash(path));
         } catch (Exception e) {
             handleConnectionLoss(e);
             throw new ZkException(e);
