@@ -46,10 +46,6 @@ public class SchedulerCluster implements InitializingBean, DisposableBean {
     @Override
     public void afterPropertiesSet() throws Exception {
         String path = PathKit.format(SCHEDULER);
-        List<String> schedulers = zkClient.gets(path);
-        if (schedulers != null && !schedulers.isEmpty()) {
-            schedulers.forEach(this::addScheduler);
-        }
         addCache = zkClient.addNodeAddListener(path, (p, data) ->
             addScheduler(PathKit.lastNode(p))
         );
@@ -59,6 +55,11 @@ public class SchedulerCluster implements InitializingBean, DisposableBean {
         });
         addCache.start();
         delCache.start();
+        //注意顺序，先监听，后遍历
+        List<String> schedulers = zkClient.gets(path);
+        if (schedulers != null && !schedulers.isEmpty()) {
+            schedulers.forEach(this::addScheduler);
+        }
     }
 
     public Set<String> getAlives() {

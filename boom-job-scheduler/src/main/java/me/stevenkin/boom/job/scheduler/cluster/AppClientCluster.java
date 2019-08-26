@@ -34,10 +34,6 @@ public class AppClientCluster implements Lifecycle{
     @Override
     public void start() {
         String path = PathKit.format(CLIENT, app);
-        List<String> clientIds = zkClient.gets(path);
-        if (clientIds != null && !clientIds.isEmpty()) {
-            clientIds.forEach(this::addClient);
-        }
         addCache = zkClient.addNodeAddListener(path, (p, data) ->
             addClient(PathKit.lastNode(p))
         );
@@ -51,6 +47,11 @@ public class AppClientCluster implements Lifecycle{
             delCache.start();
         }catch (Exception e) {
             throw new RuntimeException(e);
+        }
+        //注意顺序，先监听，后遍历
+        List<String> clientIds = zkClient.gets(path);
+        if (clientIds != null && !clientIds.isEmpty()) {
+            clientIds.forEach(this::addClient);
         }
     }
 

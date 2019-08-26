@@ -43,15 +43,16 @@ public class ClientCluster implements InitializingBean, DisposableBean{
     @Override
     public void afterPropertiesSet() throws Exception {
         String path = PathKit.format(CLIENT);
-        List<String> apps = zkClient.gets(path);
-        if (apps != null && !apps.isEmpty()) {
-            apps.forEach(this::addAppClientCluster);
-        }
         cache = zkClient.addNodeAddListener(path, (p, data) -> {
             String app = PathKit.lastNode(p);
             addAppClientCluster(app);
         });
         cache.start();
+        //注意顺序，先监听，后遍历
+        List<String> apps = zkClient.gets(path);
+        if (apps != null && !apps.isEmpty()) {
+            apps.forEach(this::addAppClientCluster);
+        }
     }
 
     private synchronized void addAppClientCluster(String app) {
