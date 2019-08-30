@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import me.stevenkin.boom.job.common.bean.AppInfo;
 import me.stevenkin.boom.job.common.bean.RegisterResponse;
 import me.stevenkin.boom.job.common.exception.ZkException;
+import me.stevenkin.boom.job.common.kit.NameKit;
 import me.stevenkin.boom.job.common.service.RegisterService;
 import me.stevenkin.boom.job.common.kit.PathKit;
 import me.stevenkin.boom.job.common.kit.ZkKit;
@@ -22,7 +23,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 @Slf4j
 public class ClientRegister implements Lifecycle {
-    private static final String ZKPREFIX = "client";
+    private static final String ZKPREFIX = "cluster/client";
 
     private final Lock RESTART_LOCK = new ReentrantLock();
 
@@ -64,10 +65,10 @@ public class ClientRegister implements Lifecycle {
         if (started)
             return;
         connectZk();
-        //String appId = NameKit.getAppId(appName, author, version);
-        ZkKit.mkdir(PathKit.format(jobClient.namespace(), ZKPREFIX), framework);
+        String appId = NameKit.getAppId(appName, author, version);
+        ZkKit.mkdir(PathKit.format(jobClient.namespace(), ZKPREFIX, appId), framework);
         scheduler.scheduleAtFixedRate(() -> {
-            String appPath = PathKit.format(ZKPREFIX, clientId);
+            String appPath = PathKit.format(ZKPREFIX, appId, clientId);
             try {
                 if (framework.checkExists().forPath(appPath) == null){
                     framework.create().withMode(CreateMode.EPHEMERAL).forPath(appPath, null);

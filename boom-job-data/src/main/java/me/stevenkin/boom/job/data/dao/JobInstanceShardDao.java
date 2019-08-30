@@ -5,7 +5,7 @@ import org.apache.ibatis.annotations.Mapper;
 import java.time.Instant;
 
 @Mapper
-public interface JobInstanceShardMapper {
+public interface JobInstanceShardDao {
 
     Integer insertShardExecTurnover(Long jobShardId, String clientId, Instant instant);
 
