@@ -37,9 +37,15 @@ public class SimpleZkQueue implements ZkQueue{
         this.latch = new CountDownLatch(1);
         this.lock = new ReentrantLock();
         this.condition = lock.newCondition();
-        cache = zkClient.addNodeAddListener(path, (p, data) ->
-            put(new ZkElement(PathKit.lastNode(p), data))
-        );
+        cache = zkClient.addNodeAddListener(path, (p, data) -> {
+            try {
+                latch.await();
+                put(new ZkElement(PathKit.lastNode(p), data));
+            } catch (InterruptedException e) {
+                log.error("some error happen", e);
+            }
+
+        });
         cache.start();
         queue = new LinkedList<>();
         List<String> nodes = zkClient.gets(path);
