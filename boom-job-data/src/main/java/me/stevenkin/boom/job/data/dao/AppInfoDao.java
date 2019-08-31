@@ -20,6 +20,8 @@ public interface AppInfoDao {
 
     Integer count();
 
+    Integer insert(App app);
+
     Integer delete(App app);
 
     Integer update(App app);

@@ -17,8 +17,12 @@ public interface JobInfoDao {
 
     Integer count();
 
+    Integer insert(Job job);
+
     Integer delete(Job job);
 
     Integer update(Job job);
+
+    Integer updateWhereStatusIs(Integer status, Job job);
 
 }

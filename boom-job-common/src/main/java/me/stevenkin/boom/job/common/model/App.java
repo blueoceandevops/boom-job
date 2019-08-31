@@ -14,6 +14,7 @@ public class App {
     private String appName;
     private String appSecret;
     private String version;
+    private String desc;
     private Long userId;
     private LocalDateTime createTime;
     private LocalDateTime updateTime;

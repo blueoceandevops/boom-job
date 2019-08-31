@@ -14,6 +14,8 @@ public interface UserInfoDao {
 
     Integer count();
 
+    Integer insert(User user);
+
     Integer delete(User user);
 
     Integer update(User user);
