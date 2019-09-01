@@ -2,12 +2,15 @@ package me.stevenkin.boom.job.data.dao;
 
 import me.stevenkin.boom.job.common.model.App;
 import me.stevenkin.boom.job.common.model.Job;
+import me.stevenkin.boom.job.common.model.JobKey;
 
 import java.util.List;
 
 public interface JobInfoDao {
 
     Job selectById(Long id);
+
+    JobKey selectJobKeyById(Long id);
 
     List<Job> selectJobsByApp(App app);
 

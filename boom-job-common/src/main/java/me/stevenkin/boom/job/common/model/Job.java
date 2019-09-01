@@ -18,7 +18,7 @@ public class Job {
     private LocalDateTime startTime;
     private LocalDateTime endTime;
     private Integer repeatCount;
-    private Long repeatInterval;
+    private Integer repeatInterval;
     private boolean isRepeatForever;
     private String desc;
     private Long appId;
