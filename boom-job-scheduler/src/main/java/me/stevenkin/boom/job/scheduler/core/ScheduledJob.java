@@ -1,5 +1,6 @@
 package me.stevenkin.boom.job.scheduler.core;
 
+import com.alibaba.dubbo.config.ReferenceConfig;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,6 +26,8 @@ import static org.quartz.TriggerBuilder.newTrigger;
 @NoArgsConstructor
 @Slf4j
 public class ScheduledJob implements Lifecycle {
+    private JobManager jobManager;
+
     private me.stevenkin.boom.job.common.bean.JobDetail jobDetail;
 
     private SchedulerFactory schedulers;
@@ -39,16 +42,20 @@ public class ScheduledJob implements Lifecycle {
 
     private JobProcessor jobProcessor;
 
-    public ScheduledJob(me.stevenkin.boom.job.common.bean.JobDetail jobDetail, DubboConfigHolder dubboConfigHolder, SchedulerFactory schedulers, ZkClient zkClient, JobExecutor jobExecutor) {
+    private ReferenceConfig<JobProcessor> reference;
+
+    public ScheduledJob(me.stevenkin.boom.job.common.bean.JobDetail jobDetail, JobManager jobManager) {
         this.jobDetail = jobDetail;
-        this.dubboConfigHolder = dubboConfigHolder;
-        this.schedulers = schedulers;
-        this.zkClient = zkClient;
-        this.jobExecutor  = jobExecutor;
-        this.commandProcessor = new CommandProcessor(jobDetail.getJobKey(), zkClient, this);
+        this.jobManager = jobManager;
+        this.dubboConfigHolder = jobManager.getDubboConfigHolder();
+        this.schedulers = jobManager.getSchedulers();
+        this.zkClient = jobManager.getZkClient();
+        this.jobExecutor  = jobManager.getJobExecutor();
+        this.commandProcessor = new CommandProcessor(jobDetail.getJobKey(), zkClient, jobManager);
+        this.jobProcessor = buildJobProcessor(jobDetail.getJobKey());
     }
 
-    public Boolean online() {
+    public Boolean schedule() {
         org.quartz.JobKey jobKey = buildJobKey(jobDetail.getJobKey());
 
         Scheduler scheduler = null;
@@ -79,23 +86,57 @@ public class ScheduledJob implements Lifecycle {
     }
 
     public Boolean trigger() {
-        return null;
+        try {
+            schedulers.getScheduler().triggerJob(buildJobKey(jobDetail.getJobKey()));
+            return Boolean.TRUE;
+        } catch (SchedulerException e) {
+            log.error("some error happen", e);
+        }
+        return Boolean.FALSE;
     }
 
     public Boolean pause() {
-        return null;
+        try {
+            schedulers.getScheduler().pauseJob(buildJobKey(jobDetail.getJobKey()));
+            return Boolean.TRUE;
+        } catch (SchedulerException e) {
+            log.error("some error happen", e);
+        }
+        return Boolean.FALSE;
     }
 
-    public Boolean resume() {
-        return null;
+    public Boolean resume(me.stevenkin.boom.job.common.bean.JobDetail jobDetail) {
+        if (isDiff(jobDetail)) {
+            return reload(jobDetail);
+        }
+        try {
+            schedulers.getScheduler().resumeJob(buildJobKey(jobDetail.getJobKey()));
+            return Boolean.TRUE;
+        } catch (SchedulerException e) {
+            log.error("some error happen", e);
+        }
+        return Boolean.FALSE;
     }
 
     public Boolean offline() {
-        return null;
+        commandProcessor.shutdown();
+        reference.destroy();
+        return delete();
     }
 
-    public Boolean reload(Job job) {
-        return null;
+    public Boolean delete() {
+        try {
+            schedulers.getScheduler().deleteJob(buildJobKey(jobDetail.getJobKey()));
+            return Boolean.TRUE;
+        } catch (SchedulerException e) {
+            log.error("some error happen", e);
+        }
+        return Boolean.FALSE;
+    }
+
+    public Boolean reload(me.stevenkin.boom.job.common.bean.JobDetail jobDetail) {
+        this.jobDetail = jobDetail;
+        return delete() && schedule();
     }
 
     private org.quartz.JobKey buildJobKey(JobKey jobKey) {
@@ -148,18 +189,33 @@ public class ScheduledJob implements Lifecycle {
         return triggerBuilder.build();
     }
 
+    private JobProcessor buildJobProcessor(JobKey jobKey) {
+        reference = new ReferenceConfig<>();
+        reference.setApplication(dubboConfigHolder.getApplicationConfig());
+        reference.setRegistry(dubboConfigHolder.getRegistryConfig());
+        reference.setInterface(JobProcessor.class);
+        reference.setGroup(NameKit.getJobId(jobKey.getAppName(), jobKey.getAuthor(), jobKey.getVersion(), jobKey.getJobClassName()));
+        return reference.get();
+    }
+
     private TriggerKey buildTriggerKey(JobKey jobKey) {
         return TriggerKey.triggerKey(jobKey.getJobClassName(),
                 NameKit.getAppId(jobKey.getAppName(), jobKey.getAuthor(), jobKey.getVersion()));
     }
 
+    private boolean isDiff(me.stevenkin.boom.job.common.bean.JobDetail jobDetail) {
+        //TODO diff
+        return false;
+    }
+
     @Override
     public void start() {
-
+        schedule();
+        commandProcessor.start();
     }
 
     @Override
     public void shutdown() {
-
+        jobManager.offlineJob(jobDetail.getJob().getId());
     }
 }

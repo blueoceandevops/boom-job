@@ -15,7 +15,7 @@ public class CommandProcessor implements Lifecycle {
 
     private ZkClient zkClient;
 
-    private ScheduledJob scheduledJob;
+    private JobManager jobManager;
 
     @Override
     public void start() {

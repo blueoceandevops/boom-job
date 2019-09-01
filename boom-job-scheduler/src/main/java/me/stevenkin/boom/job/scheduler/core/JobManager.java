@@ -1,5 +1,6 @@
 package me.stevenkin.boom.job.scheduler.core;
 
+import lombok.Data;
 import me.stevenkin.boom.job.common.bean.JobDetail;
 import me.stevenkin.boom.job.common.enums.JobStatus;
 import me.stevenkin.boom.job.common.model.App;
@@ -31,6 +32,7 @@ import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Component
+@Data
 public class JobManager implements InitializingBean , DisposableBean {
     @Autowired
     private AppInfoDao appInfoDao;
@@ -77,36 +79,92 @@ public class JobManager implements InitializingBean , DisposableBean {
             throw new IllegalStateException();
         }
 
-        JobKey jobKey = jobInfoDao.selectJobKeyById(jobId);
-        JobConfig jobConfig = jobConfigDao.selectByJobId(jobId);
-        App app = appInfoDao.selectAppById(job.getAppId());
-        Assert.isTrue(jobKey != null, "job key " + jobId + " must be exist");
-        Assert.isTrue(jobConfig != null, "job config" + jobId + " must be exist");
-        Assert.isTrue(app != null, "job" + jobId + " 'app must be exist");
-        ScheduledJob job2 = new ScheduledJob(new JobDetail(job, app, jobKey, jobConfig), dubboConfigHolder, schedulers, zkClient, jobExecutor);
+        ScheduledJob job2 = new ScheduledJob(jobDetail(job), this);
         jobCaches.put(jobId, job2);
         job2.start();
+
         return Boolean.TRUE;
     }
 
     public Boolean triggerJob(Long jobId){
-        return null;
+        if (!jobCaches.containsKey(jobId))
+            return Boolean.FALSE;
+        Job job = jobInfoDao.selectById(jobId);
+        if (!statusMachine.isLegalStatus(JobStatus.fromCode(job.getStatus()), JobStatus.RUNNING))
+            return Boolean.FALSE;
+        return jobCaches.get(jobId).trigger();
     }
 
     public Boolean pauseJob(Long jobId){
-        return null;
+        if (!jobCaches.containsKey(jobId))
+            return Boolean.FALSE;
+        Job job = jobInfoDao.selectById(jobId);
+        if (!statusMachine.isLegalStatus(JobStatus.fromCode(job.getStatus()), JobStatus.PAUSED))
+            return Boolean.FALSE;
+        Job job1 = new Job();
+        job1.setId(jobId);
+        job1.setStatus(JobStatus.PAUSED.getCode());
+        job1.setUpdateTime(LocalDateTime.now());
+        int count = jobInfoDao.updateWhereStatusIs(job.getStatus(), job1);
+        if (count <= 0) {
+            throw new IllegalStateException();
+        }
+        return jobCaches.get(jobId).pause();
     }
 
     public Boolean resumeJob(Long jobId){
-        return null;
+        if (!jobCaches.containsKey(jobId))
+            return Boolean.FALSE;
+        Job job = jobInfoDao.selectById(jobId);
+        if (!statusMachine.isLegalStatus(JobStatus.fromCode(job.getStatus()), JobStatus.ONLINE))
+            return Boolean.FALSE;
+        Job job1 = new Job();
+        job1.setId(jobId);
+        job1.setStatus(JobStatus.ONLINE.getCode());
+        job1.setUpdateTime(LocalDateTime.now());
+        int count = jobInfoDao.updateWhereStatusIs(job.getStatus(), job1);
+        if (count <= 0) {
+            throw new IllegalStateException();
+        }
+        return jobCaches.get(jobId).resume(jobDetail(job));
     }
 
     public Boolean offlineJob(Long jobId){
-        return null;
+        if (!jobCaches.containsKey(jobId))
+            return Boolean.FALSE;
+        Job job = jobInfoDao.selectById(jobId);
+        if (!statusMachine.isLegalStatus(JobStatus.fromCode(job.getStatus()), JobStatus.OFFLINE))
+            return Boolean.FALSE;
+        Job job1 = new Job();
+        job1.setId(jobId);
+        job1.setStatus(JobStatus.OFFLINE.getCode());
+        job1.setUpdateTime(LocalDateTime.now());
+        int count = jobInfoDao.updateWhereStatusIs(job.getStatus(), job1);
+        if (count <= 0) {
+            throw new IllegalStateException();
+        }
+        return jobCaches.get(jobId).offline();
     }
 
     public Boolean reloadJob(Long jobId){
-        return null;
+        if (!jobCaches.containsKey(jobId))
+            return Boolean.FALSE;
+        Job job = jobInfoDao.selectById(jobId);
+        JobStatus jobStatus = JobStatus.fromCode(job.getStatus());
+        if (jobStatus != JobStatus.ONLINE && jobStatus != JobStatus.RUNNING) {
+            return Boolean.FALSE;
+        }
+        return jobCaches.get(jobId).reload(jobDetail(job));
+    }
+
+    private JobDetail jobDetail(Job job) {
+        JobKey jobKey = jobInfoDao.selectJobKeyById(job.getId());
+        JobConfig jobConfig = jobConfigDao.selectByJobId(job.getId());
+        App app = appInfoDao.selectAppById(job.getAppId());
+        Assert.isTrue(jobKey != null, "job key " + job.getId() + " must be exist");
+        Assert.isTrue(jobConfig != null, "job config" + job.getId() + " must be exist");
+        Assert.isTrue(app != null, "job" + job.getId() + " 'app must be exist");
+        return new JobDetail(job, app, jobKey, jobConfig);
     }
 
     @Override
@@ -125,6 +183,7 @@ public class JobManager implements InitializingBean , DisposableBean {
     @Override
     public void destroy() throws Exception {
         jobCaches.values().forEach(ScheduledJob::shutdown);
+        jobCaches.clear();
         schedulers.getScheduler().shutdown();
         zkClient.shutdown();
     }

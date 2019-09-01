@@ -51,9 +51,9 @@ public class ClientTest {
         service3.export();
 
 
-        BoomJobClient jobClient = new SimpleBoomJobClient(
+        BoomJobClient jobClient = null;/*= new SimpleBoomJobClient(
                 "test", "stevenkin","0.0.1", "wjg",
-                "192.168.99.100:2181", "boom", 1);
+                "192.168.99.100:2181", "boom", 1)*/
         jobClient.start();
         jobClient.registerJob(new TestJob());
 
