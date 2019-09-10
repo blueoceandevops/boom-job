@@ -16,5 +16,6 @@ public class JobInstance {
     private String jobParam;
     private Integer shardCount;
     private LocalDateTime startTime;
+    private LocalDateTime expectedEndTime;
     private LocalDateTime endTime;
 }

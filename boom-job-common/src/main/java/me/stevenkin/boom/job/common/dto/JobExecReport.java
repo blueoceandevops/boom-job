@@ -13,14 +13,12 @@ import java.time.Instant;
 public class JobExecReport implements Serializable{
     private static final long serialVersionUID = 7508627524604536152L;
 
-    private String jobId;
-    private String jobType;
+    private String jobKey;
     private Long jobInstanceId;
     private Long jobShardId;
     private String clientId;
     private JobResult jobResult;
-    private Instant startTime;
-    private Instant endTime;
+    private Long executeTime;
     private Throwable exception;
 
 }

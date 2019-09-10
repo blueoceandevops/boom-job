@@ -17,8 +17,8 @@ import java.util.concurrent.Executors;
 @Component
 @Slf4j
 public class NodeFailedProcessor implements Lifecycle{
-    private final static String CLIENT_PATH = "cluster/failover/client";
-    private final static String SCHEDULER_PATH = "cluster/failover/scheduler";
+    private final static String CLIENT_PATH = "failover/client";
+    private final static String SCHEDULER_PATH = "failover/scheduler";
 
     @Autowired
     private FailoverService failoverService;

@@ -11,7 +11,12 @@ import me.stevenkin.boom.job.common.service.ShardExecuteService;
 import org.springframework.beans.BeanUtils;
 
 import java.time.Instant;
+import java.util.LinkedList;
+import java.util.Queue;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.LinkedBlockingQueue;
 
 @Getter
 @NoArgsConstructor
@@ -41,52 +46,36 @@ public class SimpleJobProcessor implements JobProcessor {
 
     @Override
     public JobFireResponse fireJob(JobFireRequest request) {
-        if (!request.getJobId().equals(jobId)) {
+        if (!request.getJobKey().equals(jobId)) {
             return new JobFireResponse(JobFireResult.FIRE_FAILED, jobClient.clientId());
         }
         Long jobInstanceId = request.getJobInstanceId();
+        Long jobInstanceShardId = request.getJobInstanceShardId();
+        Queue<Long> shardIds = new LinkedList<>();
+        shardIds.add(jobInstanceShardId);
         executor.submit(() -> {
             log.info("service {} is fired", jobId);
-            Long fetchShardCount = request.getFetchShardCount();
-            boolean first = true;
-            do{
-                if (!first) {
-                    fetchShardCount += jobExecuteService.fetchMoreShardCount(jobInstanceId);
-                }
-                if (first) {
-                    first = false;
-                }
-                while (fetchShardCount > 0) {
-                    FetchShardResponse response = jobExecuteService.fetchOneShard(jobInstanceId);
-                    if (response == null) {
-                        continue;
+            while (!jobExecuteService.checkJobInstanceIsFinal(jobInstanceId)) {
+                Long id;
+                while ((id = shardIds.poll()) != null) {
+                    JobInstanceShardDto jobInstanceShardDto = jobExecuteService.fetchOneShard(new FetchShardRequest(id, jobClient.clientId()));
+                    if (jobInstanceShardDto != null) {
+                        jobExecuteService.reportJobExecResult(executeJobShard(jobInstanceShardDto));
                     }
-                    if (response.getInstanceIsFinal()) {
-                        break;
-                    }
-                    if (response.getJobInstanceShard() == null) {
-                        continue;
-                    }
-                    JobInstanceShardDto jobInstanceShardDto = response.getJobInstanceShard();
-                    if (!shardExecuteService.insertShardExecTurnover(jobInstanceShardDto.getJobShardId(),
-                            jobClient.clientId(), Instant.now()))
-                        continue;
-                    JobExecReport jobExecReport = executeJobShard(jobInstanceShardDto);
-                    jobExecuteService.reportJobExecResult(jobExecReport);
-                    fetchShardCount--;
                 }
-            } while (!jobExecuteService.checkJobInstanceIsFinal(jobInstanceId));
+                shardIds.addAll(jobExecuteService.fetchMoreShardIds(jobInstanceId));
+            }
         });
         return new JobFireResponse(JobFireResult.FIRE_SUCCESS, jobClient.clientId());
     }
 
-    private JobExecReport executeJobShard(JobInstanceShardDto shardVo) {
+    private JobExecReport executeJobShard(JobInstanceShardDto dto) {
         JobResult result;
         Throwable error = null;
         Instant startTime = Instant.now();
         Instant endTime;
         try {
-            result = job.execute(buildJobContext(shardVo));
+            result = job.execute(buildJobContext(dto));
             endTime = Instant.now();
         } catch (Throwable throwable) {
             result = JobResult.FAIL;
@@ -94,19 +83,21 @@ public class SimpleJobProcessor implements JobProcessor {
             endTime = Instant.now();
             log.error("some error happen when service {} is executing", jobId, throwable);
         }
+        Long execTime = endTime.toEpochMilli() - startTime.toEpochMilli();
         JobExecReport jobExecReport = new JobExecReport();
-        BeanUtils.copyProperties(shardVo, jobExecReport);
+        jobExecReport.setJobKey(jobId);
+        jobExecReport.setJobInstanceId(dto.getJobInstanceId());
+        jobExecReport.setJobShardId(dto.getJobShardId());
         jobExecReport.setClientId(jobClient.clientId());
+        jobExecReport.setExecuteTime(execTime);
         jobExecReport.setJobResult(result);
         jobExecReport.setException(error);
-        jobExecReport.setStartTime(startTime);
-        jobExecReport.setEndTime(endTime);
         return jobExecReport;
     }
 
-    private JobContext buildJobContext(JobInstanceShardDto request) {
+    private JobContext buildJobContext(JobInstanceShardDto dto) {
         JobContext jobContext = new JobContext();
-        BeanUtils.copyProperties(request, jobContext);
+        BeanUtils.copyProperties(dto, jobContext);
         return jobContext;
     }
 

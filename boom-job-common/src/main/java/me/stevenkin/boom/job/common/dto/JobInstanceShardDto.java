@@ -12,11 +12,11 @@ import java.io.Serializable;
 public class JobInstanceShardDto implements Serializable {
     private static final long serialVersionUID = 890116025166420317L;
 
-    private String jobId;
-    private String jobType;
+    private String jobKey;
     private Long jobInstanceId;
     private Long jobShardId;
     private Long jobShardIndex;
     private String jobShardParam;
+    private String jobParam;
     private Long jobShardCount;
 }

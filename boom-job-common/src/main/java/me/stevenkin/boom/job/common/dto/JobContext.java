@@ -8,11 +8,11 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class JobContext {
-    private String jobId;
-    private String jobType;
+    private String jobKey;
     private Long jobInstanceId;
     private Long jobShardId;
     private Long jobShardIndex;
     private String jobShardParam;
+    private String jobParam;
     private Long jobShardCount;
 }

@@ -19,7 +19,7 @@ import java.util.concurrent.TimeUnit;
 
 @Component
 public class LeaderSelector implements InitializingBean, DisposableBean{
-    private final static String LEADER = "/cluster/leader";
+    private final static String LEADER = "/leader";
 
     @Autowired
     private ZkClient zkClient;

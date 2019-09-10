@@ -19,8 +19,8 @@ import java.util.Set;
 @Slf4j
 public class SchedulerCluster implements InitializingBean, DisposableBean {
 
-    private static final String SCHEDULER = "cluster/scheduler";
-    private static final String SCHEDULER_FAILOVER = "cluster/failover/scheduler";
+    private static final String SCHEDULER = "scheduler";
+    private static final String SCHEDULER_FAILOVER = "failover/scheduler";
 
     @Autowired
     private ZkClient zkClient;

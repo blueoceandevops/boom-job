@@ -14,7 +14,7 @@ import java.util.concurrent.TimeUnit;
 
 @Component
 public class SchedulerRegister implements InitializingBean, DisposableBean {
-    private static final String ZKPREFIX = "cluster/scheduler";
+    private static final String ZKPREFIX = "scheduler";
     @Autowired
     private ZkClient zkClient;
     @Autowired

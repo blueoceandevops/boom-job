@@ -9,10 +9,8 @@ import java.io.Serializable;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class JobFireRequest implements Serializable{
-    private static final long serialVersionUID = -4153657694380103021L;
-    private String jobKey;
-    private Long jobInstanceId;
+public class FetchShardRequest implements Serializable {
+    private static final long serialVersionUID = 8717193281500936488L;
     private Long jobInstanceShardId;
-    private String schedulerId;
+    private String clientId;
 }

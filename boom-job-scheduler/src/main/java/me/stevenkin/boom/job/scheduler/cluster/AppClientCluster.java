@@ -13,8 +13,8 @@ import java.util.Set;
 
 @Slf4j
 public class AppClientCluster implements Lifecycle{
-    private static final String CLIENT = "cluster/client";
-    private static final String CLIENT_FAILOVER = "cluster/failover/client";
+    private static final String CLIENT = "client";
+    private static final String CLIENT_FAILOVER = "failover/client";
 
     private ZkClient zkClient;
 

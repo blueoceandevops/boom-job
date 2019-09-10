@@ -17,7 +17,7 @@ import java.util.Map;
 @Component
 @Slf4j
 public class ClientCluster implements InitializingBean, DisposableBean{
-    private static final String CLIENT = "cluster/client";
+    private static final String CLIENT = "client";
 
     @Autowired
     private ZkClient zkClient;
