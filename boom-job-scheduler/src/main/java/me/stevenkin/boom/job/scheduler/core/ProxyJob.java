@@ -3,7 +3,7 @@ package me.stevenkin.boom.job.scheduler.core;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import me.stevenkin.boom.job.common.bean.JobDetail;
+import me.stevenkin.boom.job.common.dto.JobDetail;
 import me.stevenkin.boom.job.common.service.JobProcessor;
 import org.quartz.Job;
 import org.quartz.JobExecutionContext;

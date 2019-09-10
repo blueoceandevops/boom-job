@@ -1,8 +1,10 @@
-package me.stevenkin.boom.job.common.model;
+package me.stevenkin.boom.job.common.po;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
+import java.time.LocalDateTime;
 
 @Data
 @NoArgsConstructor
@@ -11,9 +13,12 @@ public class JobConfig {
     private Long id;
     private Long jobId;
     private boolean misfire;
+    private boolean allowConcurrent;//if is true, multiple job instances
     private String jobParam;
     private Integer shardCount;
     private String shardParams;
     private Integer maxShardPullCount;
     private Long timeout;// unit is second
+    private LocalDateTime creatTime;
+    private LocalDateTime updateTime;
 }

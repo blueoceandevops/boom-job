@@ -1,17 +1,21 @@
 package me.stevenkin.boom.job.processor.core;
 
+import com.alibaba.dubbo.common.utils.ConcurrentHashSet;
 import com.alibaba.dubbo.config.ApplicationConfig;
 import com.alibaba.dubbo.config.RegistryConfig;
 import com.alibaba.dubbo.config.ServiceConfig;
 import lombok.extern.slf4j.Slf4j;
-import me.stevenkin.boom.job.common.bean.JobInfo;
-import me.stevenkin.boom.job.common.bean.RegisterResponse;
+import me.stevenkin.boom.job.common.dto.AppInfo;
+import me.stevenkin.boom.job.common.dto.JobInfo;
+import me.stevenkin.boom.job.common.dto.RegisterResponse;
 import me.stevenkin.boom.job.common.service.JobProcessor;
 import me.stevenkin.boom.job.common.service.RegisterService;
 import me.stevenkin.boom.job.common.kit.NameKit;
 import me.stevenkin.boom.job.common.support.Lifecycle;
 
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
@@ -20,6 +24,8 @@ public class JobPool implements Lifecycle {
     private BoomJobClient jobClient;
 
     private Map<String, JobProcessor> jobProcessorCache = new ConcurrentHashMap<>();
+
+    private Set<String> jobs = new ConcurrentHashSet<>();
 
     private ApplicationConfig application;
 
@@ -45,6 +51,7 @@ public class JobPool implements Lifecycle {
         String jobId = getJobId(job.getClass());
         JobProcessor jobProcessor = new SimpleJobProcessor(job, jobId, jobClient);
         jobProcessorCache.put(jobId, jobProcessor);
+        jobs.add(job.getClass().getCanonicalName());
         if (serviceCache.get(job.getClass()) != null)
             return;
         ServiceConfig<JobProcessor> service = new ServiceConfig<>();
@@ -57,20 +64,15 @@ public class JobPool implements Lifecycle {
 
         service.export();
         serviceCache.put(job.getClass(), service);
-
-        RegisterResponse response = registerService.registerJobInfo(new JobInfo(
-                jobClient.appName(), jobClient.author(), jobClient.version(), job.getClass().getCanonicalName()));
-        if (response.isFailed()) {
-            log.error("service {} register failed", jobId);
-        }
-        else if (response.isNoLinked()) {
-            log.error("service {} can't find app be linked", jobId);
-        }
     }
 
     @Override
     public void start() {
-
+        AppInfo appInfo = new AppInfo();
+        appInfo.setAuthor(jobClient.author());
+        appInfo.setAppName(jobClient.appName());
+        appInfo.setJobs(new HashSet<>(jobs));
+        registerService.registerAppInfo(appInfo);
     }
 
     @Override
@@ -81,6 +83,6 @@ public class JobPool implements Lifecycle {
     }
 
     private String getJobId(Class<? extends Job> jobClass){
-        return NameKit.getJobId(jobClient.appName(), jobClient.author(), jobClient.version(), jobClass.getCanonicalName());
+        return NameKit.getJobId(jobClient.appName(), jobClient.author(), jobClass.getCanonicalName());
     }
 }

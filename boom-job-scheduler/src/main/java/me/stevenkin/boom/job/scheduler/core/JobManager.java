@@ -1,12 +1,13 @@
 package me.stevenkin.boom.job.scheduler.core;
 
 import lombok.Data;
-import me.stevenkin.boom.job.common.bean.JobDetail;
+import me.stevenkin.boom.job.common.dto.JobDetail;
 import me.stevenkin.boom.job.common.enums.JobStatus;
-import me.stevenkin.boom.job.common.model.App;
-import me.stevenkin.boom.job.common.model.Job;
-import me.stevenkin.boom.job.common.model.JobConfig;
-import me.stevenkin.boom.job.common.model.JobKey;
+import me.stevenkin.boom.job.common.po.App;
+import me.stevenkin.boom.job.common.po.Job;
+import me.stevenkin.boom.job.common.po.JobConfig;
+import me.stevenkin.boom.job.common.po.JobKey;
+import me.stevenkin.boom.job.common.service.JobSchedulerService;
 import me.stevenkin.boom.job.common.zk.ZkClient;
 import me.stevenkin.boom.job.data.dao.AppInfoDao;
 import me.stevenkin.boom.job.data.dao.JobConfigDao;
@@ -33,7 +34,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @Component
 @Data
-public class JobManager implements InitializingBean , DisposableBean {
+public class JobManager implements InitializingBean, DisposableBean {
     @Autowired
     private AppInfoDao appInfoDao;
     @Autowired

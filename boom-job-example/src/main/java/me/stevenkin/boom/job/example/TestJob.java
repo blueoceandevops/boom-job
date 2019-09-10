@@ -1,8 +1,8 @@
 package me.stevenkin.boom.job.example;
 
 import lombok.extern.slf4j.Slf4j;
-import me.stevenkin.boom.job.common.bean.JobContext;
-import me.stevenkin.boom.job.common.bean.JobResult;
+import me.stevenkin.boom.job.common.dto.JobContext;
+import me.stevenkin.boom.job.common.dto.JobResult;
 import me.stevenkin.boom.job.processor.annotation.BoomJob;
 import me.stevenkin.boom.job.processor.core.Job;
 

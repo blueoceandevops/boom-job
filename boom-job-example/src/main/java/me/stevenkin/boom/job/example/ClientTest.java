@@ -2,14 +2,13 @@ package me.stevenkin.boom.job.example;
 
 import com.alibaba.dubbo.config.*;
 import lombok.extern.slf4j.Slf4j;
-import me.stevenkin.boom.job.common.bean.JobFireRequest;
-import me.stevenkin.boom.job.common.bean.JobFireResponse;
+import me.stevenkin.boom.job.common.dto.JobFireRequest;
+import me.stevenkin.boom.job.common.dto.JobFireResponse;
 import me.stevenkin.boom.job.common.service.JobExecuteService;
 import me.stevenkin.boom.job.common.service.JobProcessor;
 import me.stevenkin.boom.job.common.service.RegisterService;
 import me.stevenkin.boom.job.common.service.ShardExecuteService;
 import me.stevenkin.boom.job.processor.core.BoomJobClient;
-import me.stevenkin.boom.job.processor.core.SimpleBoomJobClient;
 
 @Slf4j
 public class ClientTest {

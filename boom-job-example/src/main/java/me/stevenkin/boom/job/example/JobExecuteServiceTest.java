@@ -1,9 +1,9 @@
 package me.stevenkin.boom.job.example;
 
 import lombok.extern.slf4j.Slf4j;
-import me.stevenkin.boom.job.common.bean.FetchShardResponse;
-import me.stevenkin.boom.job.common.bean.JobExecReport;
-import me.stevenkin.boom.job.common.bean.JobInstanceShardVo;
+import me.stevenkin.boom.job.common.dto.FetchShardResponse;
+import me.stevenkin.boom.job.common.dto.JobExecReport;
+import me.stevenkin.boom.job.common.dto.JobInstanceShardDto;
 import me.stevenkin.boom.job.common.service.JobExecuteService;
 
 @Slf4j
@@ -14,7 +14,7 @@ public class JobExecuteServiceTest implements JobExecuteService {
     @Override
     public FetchShardResponse fetchOneShard(Long jobInstance) {
         log.info(jobInstance.toString());
-        return new FetchShardResponse(new JobInstanceShardVo("stevenkin_test_0.0.1_me.stevenkin.boom.job.TestJob",
+        return new FetchShardResponse(new JobInstanceShardDto("stevenkin_test_0.0.1_me.stevenkin.boom.job.TestJob",
                 "default",
                 0L,
                 0L,

@@ -1,4 +1,4 @@
-package me.stevenkin.boom.job.common.model;
+package me.stevenkin.boom.job.common.po;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -13,7 +13,6 @@ public class App {
     private Long id;
     private String appName;
     private String appSecret;
-    private String version;
     private String desc;
     private Long userId;
     private LocalDateTime createTime;

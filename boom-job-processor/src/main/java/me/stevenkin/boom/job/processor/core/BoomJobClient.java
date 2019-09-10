@@ -17,8 +17,6 @@ public interface BoomJobClient extends Lifecycle {
 
     String author();
 
-    String version();
-
     String appSecret();
 
     String clientId();

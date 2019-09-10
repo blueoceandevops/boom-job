@@ -1,4 +1,4 @@
-package me.stevenkin.boom.job.common.model;
+package me.stevenkin.boom.job.common.po;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -14,6 +14,7 @@ public class Job {
     private String jobClass;
     private Integer type;
     private Integer status;
+    private String schedulerId;
     private String cron;
     private LocalDateTime startTime;
     private LocalDateTime endTime;

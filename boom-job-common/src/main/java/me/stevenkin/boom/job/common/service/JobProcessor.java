@@ -1,7 +1,7 @@
 package me.stevenkin.boom.job.common.service;
 
-import me.stevenkin.boom.job.common.bean.JobFireRequest;
-import me.stevenkin.boom.job.common.bean.JobFireResponse;
+import me.stevenkin.boom.job.common.dto.JobFireRequest;
+import me.stevenkin.boom.job.common.dto.JobFireResponse;
 
 public interface JobProcessor {
 

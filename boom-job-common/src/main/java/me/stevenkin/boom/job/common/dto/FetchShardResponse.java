@@ -1,4 +1,4 @@
-package me.stevenkin.boom.job.common.bean;
+package me.stevenkin.boom.job.common.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -12,6 +12,6 @@ import java.io.Serializable;
 public class FetchShardResponse implements Serializable{
     private static final long serialVersionUID = 2810186199122784143L;
 
-    private JobInstanceShardVo jobInstanceShard;
+    private JobInstanceShardDto jobInstanceShard;
     private Boolean instanceIsFinal;
 }

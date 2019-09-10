@@ -7,11 +7,11 @@ public class NameKit {
         return Joiner.on("_").join(names);
     }
 
-    public static String getAppId(String appName, String author, String version) {
-        return genName(author, appName, version);
+    public static String getAppId(String appName, String author) {
+        return genName(author, appName);
     }
 
-    public static String getJobId(String appName, String author, String version, String jobClassName) {
-        return genName(author, appName, version, jobClassName);
+    public static String getJobId(String appName, String author, String jobClassName) {
+        return genName(author, appName, jobClassName);
     }
 }

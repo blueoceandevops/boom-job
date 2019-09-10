@@ -1,7 +1,7 @@
 package me.stevenkin.boom.job.processor.core;
 
-import me.stevenkin.boom.job.common.bean.JobContext;
-import me.stevenkin.boom.job.common.bean.JobResult;
+import me.stevenkin.boom.job.common.dto.JobContext;
+import me.stevenkin.boom.job.common.dto.JobResult;
 
 public interface Job {
     /**

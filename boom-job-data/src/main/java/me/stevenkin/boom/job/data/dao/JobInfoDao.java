@@ -1,8 +1,8 @@
 package me.stevenkin.boom.job.data.dao;
 
-import me.stevenkin.boom.job.common.model.App;
-import me.stevenkin.boom.job.common.model.Job;
-import me.stevenkin.boom.job.common.model.JobKey;
+import me.stevenkin.boom.job.common.po.App;
+import me.stevenkin.boom.job.common.po.Job;
+import me.stevenkin.boom.job.common.po.JobKey;
 
 import java.util.List;
 

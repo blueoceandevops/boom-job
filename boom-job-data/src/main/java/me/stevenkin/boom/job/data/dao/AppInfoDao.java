@@ -1,6 +1,6 @@
 package me.stevenkin.boom.job.data.dao;
 
-import me.stevenkin.boom.job.common.model.App;
+import me.stevenkin.boom.job.common.po.App;
 
 import java.util.List;
 
@@ -8,7 +8,7 @@ public interface AppInfoDao {
 
     App selectAppById(Long id);
 
-    List<App> selectAppsByUsernameAndAppName(String username, String appName);
+    App selectAppByUsernameAndAppName(String username, String appName);
 
     App selectAppByUsernameAndAppNameAndVersion(String username, String appName, String version);
 

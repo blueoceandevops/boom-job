@@ -1,7 +1,7 @@
 package me.stevenkin.boom.job.common.service;
 
-import me.stevenkin.boom.job.common.bean.FetchShardResponse;
-import me.stevenkin.boom.job.common.bean.JobExecReport;
+import me.stevenkin.boom.job.common.dto.FetchShardResponse;
+import me.stevenkin.boom.job.common.dto.JobExecReport;
 
 public interface JobExecuteService {
 

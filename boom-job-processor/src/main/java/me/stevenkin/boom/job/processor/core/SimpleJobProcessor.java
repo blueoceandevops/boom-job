@@ -3,7 +3,7 @@ package me.stevenkin.boom.job.processor.core;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import me.stevenkin.boom.job.common.bean.*;
+import me.stevenkin.boom.job.common.dto.*;
 import me.stevenkin.boom.job.common.enums.JobFireResult;
 import me.stevenkin.boom.job.common.service.JobExecuteService;
 import me.stevenkin.boom.job.common.service.JobProcessor;
@@ -67,11 +67,11 @@ public class SimpleJobProcessor implements JobProcessor {
                     if (response.getJobInstanceShard() == null) {
                         continue;
                     }
-                    JobInstanceShardVo jobInstanceShardVo = response.getJobInstanceShard();
-                    if (!shardExecuteService.insertShardExecTurnover(jobInstanceShardVo.getJobShardId(),
+                    JobInstanceShardDto jobInstanceShardDto = response.getJobInstanceShard();
+                    if (!shardExecuteService.insertShardExecTurnover(jobInstanceShardDto.getJobShardId(),
                             jobClient.clientId(), Instant.now()))
                         continue;
-                    JobExecReport jobExecReport = executeJobShard(jobInstanceShardVo);
+                    JobExecReport jobExecReport = executeJobShard(jobInstanceShardDto);
                     jobExecuteService.reportJobExecResult(jobExecReport);
                     fetchShardCount--;
                 }
@@ -80,7 +80,7 @@ public class SimpleJobProcessor implements JobProcessor {
         return new JobFireResponse(JobFireResult.FIRE_SUCCESS, jobClient.clientId());
     }
 
-    private JobExecReport executeJobShard(JobInstanceShardVo shardVo) {
+    private JobExecReport executeJobShard(JobInstanceShardDto shardVo) {
         JobResult result;
         Throwable error = null;
         Instant startTime = Instant.now();
@@ -104,7 +104,7 @@ public class SimpleJobProcessor implements JobProcessor {
         return jobExecReport;
     }
 
-    private JobContext buildJobContext(JobInstanceShardVo request) {
+    private JobContext buildJobContext(JobInstanceShardDto request) {
         JobContext jobContext = new JobContext();
         BeanUtils.copyProperties(request, jobContext);
         return jobContext;

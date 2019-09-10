@@ -1,6 +1,6 @@
 package me.stevenkin.boom.job.data.dao;
 
-import me.stevenkin.boom.job.common.model.User;
+import me.stevenkin.boom.job.common.po.User;
 
 import java.util.List;
 

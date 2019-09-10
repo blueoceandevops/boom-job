@@ -1,4 +1,4 @@
-package me.stevenkin.boom.job.common.model;
+package me.stevenkin.boom.job.common.po;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

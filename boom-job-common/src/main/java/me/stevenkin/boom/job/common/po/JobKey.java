@@ -1,4 +1,4 @@
-package me.stevenkin.boom.job.common.model;
+package me.stevenkin.boom.job.common.po;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -11,6 +11,5 @@ public class JobKey {
     private Long jobId;
     private String author;
     private String appName;
-    private String version;
     private String jobClassName;
 }

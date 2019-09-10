@@ -1,4 +1,4 @@
-package me.stevenkin.boom.job.common.bean;
+package me.stevenkin.boom.job.common.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

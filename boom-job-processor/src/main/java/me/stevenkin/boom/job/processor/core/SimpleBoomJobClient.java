@@ -16,13 +16,16 @@ import me.stevenkin.boom.job.common.service.ShardExecuteService;
 
 import java.util.concurrent.ExecutorService;
 
+/**
+ * 1. new SimpleBoomJobClient
+ * 2. register jobs
+ * 3. start
+ */
 public class SimpleBoomJobClient implements BoomJobClient, Lifecycle{
 
     private String appName;
 
     private String author;
-
-    private String version;
 
     private String appSecret;
 
@@ -60,16 +63,15 @@ public class SimpleBoomJobClient implements BoomJobClient, Lifecycle{
 
     private ReferenceConfigCache cache = ReferenceConfigCache.getCache();
 
-    public SimpleBoomJobClient(String appName, String author, String version, String appSecret, String zkHosts, String zkUsername, String zkPassword, String namespace, Integer timeout, Integer executeThreadCount) {
+    public SimpleBoomJobClient(String appName, String author, String appSecret, String zkHosts, String zkUsername, String zkPassword, String namespace, Integer timeout, Integer executeThreadCount) {
         this.appName = appName;
         this.author = author;
-        this.version = version;
         this.appSecret = appSecret;
         this.zkHosts = zkHosts;
         this.namespace = namespace;
         this.executeThreadCount = executeThreadCount;
         this.executor = ExecutorKit.newExecutor(executeThreadCount, 10000, "service-executor-");
-        this.application.setName(NameKit.getAppId(appName, author, version));
+        this.application.setName(NameKit.getAppId(appName, author));
         this.registry.setAddress(zkHosts);
         this.registry.setProtocol("zookeeper");
         this.registry.setUsername(zkUsername);
@@ -118,11 +120,6 @@ public class SimpleBoomJobClient implements BoomJobClient, Lifecycle{
     @Override
     public String author() {
         return author;
-    }
-
-    @Override
-    public String version() {
-        return version;
     }
 
     @Override
