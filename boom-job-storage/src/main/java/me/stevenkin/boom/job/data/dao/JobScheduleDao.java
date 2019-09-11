@@ -4,6 +4,8 @@ public interface JobScheduleDao {
 
     Integer lockJob(Long jobId, String schedulerId);
 
+    Integer triggerJob(Long jobId);
+
     Integer pauseJob(Long jobId);
 
     Integer resumeJob(Long jobId);

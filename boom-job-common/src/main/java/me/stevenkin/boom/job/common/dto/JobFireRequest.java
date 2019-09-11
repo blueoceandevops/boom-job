@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.io.Serializable;
+import java.util.List;
 
 @Data
 @NoArgsConstructor
@@ -13,6 +14,6 @@ public class JobFireRequest implements Serializable{
     private static final long serialVersionUID = -4153657694380103021L;
     private String jobKey;
     private Long jobInstanceId;
-    private Long jobInstanceShardId;
+    private List<Long> jobShardIds;
     private String schedulerId;
 }

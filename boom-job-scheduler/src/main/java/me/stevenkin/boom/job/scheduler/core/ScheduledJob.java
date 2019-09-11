@@ -131,6 +131,8 @@ public class ScheduledJob implements Lifecycle {
 
     public Boolean reload(me.stevenkin.boom.job.common.dto.JobDetail jobDetail) {
         this.jobDetail = jobDetail;
+        if (!isDiff(jobDetail))
+            return Boolean.TRUE;
         return delete() && schedule();
     }
 

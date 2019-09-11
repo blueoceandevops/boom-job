@@ -12,6 +12,7 @@ import org.springframework.beans.BeanUtils;
 
 import java.time.Instant;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
@@ -50,9 +51,9 @@ public class SimpleJobProcessor implements JobProcessor {
             return new JobFireResponse(JobFireResult.FIRE_FAILED, jobClient.clientId());
         }
         Long jobInstanceId = request.getJobInstanceId();
-        Long jobInstanceShardId = request.getJobInstanceShardId();
+        List<Long> jobShardIds = request.getJobShardIds();
         Queue<Long> shardIds = new LinkedList<>();
-        shardIds.add(jobInstanceShardId);
+        shardIds.addAll(jobShardIds);
         executor.submit(() -> {
             log.info("service {} is fired", jobId);
             while (!jobExecuteService.checkJobInstanceIsFinal(jobInstanceId)) {

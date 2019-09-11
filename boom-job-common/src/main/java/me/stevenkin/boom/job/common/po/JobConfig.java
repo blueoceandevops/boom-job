@@ -13,6 +13,7 @@ public class JobConfig {
     private Long id;
     private Long jobId;
     private boolean misfire;
+    private boolean allowConcurrent;
     private String jobParam;
     private Integer shardCount;
     private String shardParams;

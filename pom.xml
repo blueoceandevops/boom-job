@@ -16,7 +16,7 @@
         <module>boom-job-common</module>
         <module>boom-job-scheduler</module>
         <module>boom-job-console</module>
-        <module>boom-job-data</module>
+        <module>boom-job-storage</module>
         <module>boom-job-example</module>
     </modules>
     <packaging>pom</packaging>
