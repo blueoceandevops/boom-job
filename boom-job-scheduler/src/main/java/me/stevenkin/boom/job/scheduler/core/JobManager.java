@@ -2,12 +2,10 @@ package me.stevenkin.boom.job.scheduler.core;
 
 import lombok.Data;
 import me.stevenkin.boom.job.common.dto.JobDetail;
-import me.stevenkin.boom.job.common.enums.JobStatus;
 import me.stevenkin.boom.job.common.po.App;
 import me.stevenkin.boom.job.common.po.Job;
 import me.stevenkin.boom.job.common.po.JobConfig;
 import me.stevenkin.boom.job.common.po.JobKey;
-import me.stevenkin.boom.job.common.service.JobSchedulerService;
 import me.stevenkin.boom.job.common.zk.ZkClient;
 import me.stevenkin.boom.job.data.dao.AppInfoDao;
 import me.stevenkin.boom.job.data.dao.JobConfigDao;
@@ -23,11 +21,8 @@ import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.Assert;
 
-import java.time.Instant;
-import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
@@ -60,111 +55,71 @@ public class JobManager implements InitializingBean, DisposableBean {
 
     private Map<Long, ScheduledJob> jobCaches = new ConcurrentHashMap<>();
 
-    @Transactional
-    public Boolean onlineJob(Long jobId){
-        Job job = jobInfoDao.selectById(jobId);
-        if (job == null) {
+    public synchronized Boolean onlineJob(Long jobId){
+        Integer n = jobScheduleDao.lockJob(jobId, schedulerContext.getSchedulerId());
+        if (n < 1) {
             return Boolean.FALSE;
         }
-        if (!statusMachine.isLegalStatus(JobStatus.fromCode(job.getStatus()), JobStatus.ONLINE)) {
-            throw new IllegalStateException();
-        }
-        jobScheduleDao.insertJobScheduleTurnover(jobId, schedulerContext.getSchedulerId(), Instant.now());
 
-        Job job1 = new Job();
-        job1.setId(jobId);
-        job1.setStatus(JobStatus.ONLINE.getCode());
-        job1.setUpdateTime(LocalDateTime.now());
-        int count = jobInfoDao.updateWhereStatusIs(job.getStatus(), job1);
-        if (count <= 0) {
-            throw new IllegalStateException();
-        }
-
-        ScheduledJob job2 = new ScheduledJob(jobDetail(job), this);
-        jobCaches.put(jobId, job2);
-        job2.start();
+        ScheduledJob scheduledJob = new ScheduledJob(jobDetail(jobId), this);
+        jobCaches.put(jobId, scheduledJob);
+        scheduledJob.start();
 
         return Boolean.TRUE;
     }
 
-    public Boolean triggerJob(Long jobId){
+    public synchronized Boolean triggerJob(Long jobId){
         if (!jobCaches.containsKey(jobId))
-            return Boolean.FALSE;
-        Job job = jobInfoDao.selectById(jobId);
-        if (!statusMachine.isLegalStatus(JobStatus.fromCode(job.getStatus()), JobStatus.RUNNING))
             return Boolean.FALSE;
         return jobCaches.get(jobId).trigger();
     }
 
-    public Boolean pauseJob(Long jobId){
+    public synchronized Boolean pauseJob(Long jobId){
         if (!jobCaches.containsKey(jobId))
             return Boolean.FALSE;
-        Job job = jobInfoDao.selectById(jobId);
-        if (!statusMachine.isLegalStatus(JobStatus.fromCode(job.getStatus()), JobStatus.PAUSED))
+        Integer n = jobScheduleDao.pauseJob(jobId);
+        if (n < 1) {
             return Boolean.FALSE;
-        Job job1 = new Job();
-        job1.setId(jobId);
-        job1.setStatus(JobStatus.PAUSED.getCode());
-        job1.setUpdateTime(LocalDateTime.now());
-        int count = jobInfoDao.updateWhereStatusIs(job.getStatus(), job1);
-        if (count <= 0) {
-            throw new IllegalStateException();
         }
         return jobCaches.get(jobId).pause();
     }
 
-    public Boolean resumeJob(Long jobId){
+    public synchronized Boolean resumeJob(Long jobId){
         if (!jobCaches.containsKey(jobId))
             return Boolean.FALSE;
-        Job job = jobInfoDao.selectById(jobId);
-        if (!statusMachine.isLegalStatus(JobStatus.fromCode(job.getStatus()), JobStatus.ONLINE))
+        Integer n = jobScheduleDao.resumeJob(jobId);
+        if (n < 1) {
             return Boolean.FALSE;
-        Job job1 = new Job();
-        job1.setId(jobId);
-        job1.setStatus(JobStatus.ONLINE.getCode());
-        job1.setUpdateTime(LocalDateTime.now());
-        int count = jobInfoDao.updateWhereStatusIs(job.getStatus(), job1);
-        if (count <= 0) {
-            throw new IllegalStateException();
         }
-        return jobCaches.get(jobId).resume(jobDetail(job));
+        return jobCaches.get(jobId).resume(jobDetail(jobId));
     }
 
-    public Boolean offlineJob(Long jobId){
+    public synchronized Boolean offlineJob(Long jobId){
         if (!jobCaches.containsKey(jobId))
             return Boolean.FALSE;
-        Job job = jobInfoDao.selectById(jobId);
-        if (!statusMachine.isLegalStatus(JobStatus.fromCode(job.getStatus()), JobStatus.OFFLINE))
+        Integer n = jobScheduleDao.offlineJob(jobId);
+        if (n < 1) {
             return Boolean.FALSE;
-        Job job1 = new Job();
-        job1.setId(jobId);
-        job1.setStatus(JobStatus.OFFLINE.getCode());
-        job1.setUpdateTime(LocalDateTime.now());
-        int count = jobInfoDao.updateWhereStatusIs(job.getStatus(), job1);
-        if (count <= 0) {
-            throw new IllegalStateException();
         }
         return jobCaches.get(jobId).offline();
     }
 
-    public Boolean reloadJob(Long jobId){
+    public synchronized Boolean reloadJob(Long jobId){
         if (!jobCaches.containsKey(jobId))
             return Boolean.FALSE;
-        Job job = jobInfoDao.selectById(jobId);
-        JobStatus jobStatus = JobStatus.fromCode(job.getStatus());
-        if (jobStatus != JobStatus.ONLINE && jobStatus != JobStatus.RUNNING) {
-            return Boolean.FALSE;
-        }
-        return jobCaches.get(jobId).reload(jobDetail(job));
+
+        return jobCaches.get(jobId).reload(jobDetail(jobId));
     }
 
-    private JobDetail jobDetail(Job job) {
-        JobKey jobKey = jobInfoDao.selectJobKeyById(job.getId());
-        JobConfig jobConfig = jobConfigDao.selectByJobId(job.getId());
-        App app = appInfoDao.selectAppById(job.getAppId());
-        Assert.isTrue(jobKey != null, "job key " + job.getId() + " must be exist");
-        Assert.isTrue(jobConfig != null, "job config" + job.getId() + " must be exist");
-        Assert.isTrue(app != null, "job" + job.getId() + " 'app must be exist");
+    private JobDetail jobDetail(Long jobId) {
+        Job job = jobInfoDao.selectById(jobId);
+        JobKey jobKey = jobInfoDao.selectJobKeyById(jobId);
+        JobConfig jobConfig = jobConfigDao.selectByJobId(jobId);
+        App app = appInfoDao.selectAppById(jobId);
+        Assert.isTrue(job != null, "job " + jobId + " must be exist");
+        Assert.isTrue(jobKey != null, "job key " + jobId + " must be exist");
+        Assert.isTrue(jobConfig != null, "job config" + jobId + " must be exist");
+        Assert.isTrue(app != null, "job" + jobId + " 'app must be exist");
         return new JobDetail(job, app, jobKey, jobConfig);
     }
 

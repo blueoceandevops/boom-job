@@ -49,7 +49,6 @@ public class ScheduledJob implements Lifecycle {
         this.schedulers = jobManager.getSchedulers();
         this.zkClient = jobManager.getZkClient();
         this.jobExecutor  = jobManager.getJobExecutor();
-        this.jobProcessor = buildJobProcessor(jobDetail.getJobKey());
     }
 
     public Boolean schedule() {
@@ -150,48 +149,23 @@ public class ScheduledJob implements Lifecycle {
 
     private Trigger buildTrigger(me.stevenkin.boom.job.common.dto.JobDetail jobDetail) {
         Job job = jobDetail.getJob();
-        JobType jobType = JobType.fromCode(job.getType());
         TriggerBuilder<Trigger> triggerBuilder = newTrigger();
 
-        if (job.getStartTime() != null) {
-            triggerBuilder.startAt(Date.from(job.getStartTime().atZone(ZoneId.systemDefault()).toInstant()));
-        }
-        if (job.getEndTime() != null) {
-            triggerBuilder.endAt(Date.from(job.getEndTime().atZone(ZoneId.systemDefault()).toInstant()));
-        }
-
         triggerBuilder.withIdentity(buildTriggerKey(jobDetail.getJobKey()));
-        switch (jobType) {
-            case SIMPLE:
-                SimpleScheduleBuilder simpleScheduleBuilder = simpleSchedule();
-                simpleScheduleBuilder.withIntervalInSeconds(job.getRepeatInterval());
-                if (job.isRepeatForever()) {
-                    simpleScheduleBuilder.repeatForever();
-                }else {
-                    simpleScheduleBuilder.withRepeatCount(job.getRepeatCount());
-                }
-                //TODO misfire
-                triggerBuilder.withSchedule(simpleScheduleBuilder);
-                break;
-            case CRON:
-                CronScheduleBuilder cronScheduleBuilder = cronSchedule(job.getCron());
-                //TODO misfire
-                triggerBuilder.withSchedule(cronScheduleBuilder);
-                break;
-            default:
-                throw new IllegalStateException();
-        }
+        CronScheduleBuilder cronScheduleBuilder = cronSchedule(job.getCron());
+        //TODO misfire
+        triggerBuilder.withSchedule(cronScheduleBuilder);
 
         return triggerBuilder.build();
     }
 
-    private JobProcessor buildJobProcessor(JobKey jobKey) {
+    private void buildJobProcessor(JobKey jobKey) {
         reference = new ReferenceConfig<>();
         reference.setApplication(dubboConfigHolder.getApplicationConfig());
         reference.setRegistry(dubboConfigHolder.getRegistryConfig());
         reference.setInterface(JobProcessor.class);
         reference.setGroup(NameKit.getJobId(jobKey.getAppName(), jobKey.getAuthor(), jobKey.getJobClassName()));
-        return reference.get();
+        jobProcessor = reference.get();
     }
 
     private TriggerKey buildTriggerKey(JobKey jobKey) {
@@ -206,11 +180,15 @@ public class ScheduledJob implements Lifecycle {
 
     @Override
     public void start() {
+        buildJobProcessor(jobDetail.getJobKey());
         schedule();
     }
 
     @Override
     public void shutdown() {
+        if (reference != null) {
+            reference.destroy();
+        }
         jobManager.offlineJob(jobDetail.getJob().getId());
     }
 }

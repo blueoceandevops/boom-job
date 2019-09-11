@@ -13,7 +13,6 @@ public class JobConfig {
     private Long id;
     private Long jobId;
     private boolean misfire;
-    private boolean allowConcurrent;//if is true, multiple job instances
     private String jobParam;
     private Integer shardCount;
     private String shardParams;

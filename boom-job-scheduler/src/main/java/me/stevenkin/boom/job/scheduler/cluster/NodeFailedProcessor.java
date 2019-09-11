@@ -32,7 +32,7 @@ public class NodeFailedProcessor implements Lifecycle{
 
     private volatile boolean started = false;
 
-    private ExecutorService service = Executors.newFixedThreadPool(2);
+    private ExecutorService service;
 
     @Override
     public synchronized void start() {
@@ -41,6 +41,7 @@ public class NodeFailedProcessor implements Lifecycle{
                 started = true;
                 failedClientQueue = new SimpleZkQueue(zkClient, CLIENT_PATH);
                 failedSchedulerQueue = new SimpleZkQueue(zkClient, SCHEDULER_PATH);
+                service = Executors.newFixedThreadPool(2);
                 service.submit(() -> {
                     while (started) {
                         ZkElement element = failedClientQueue.take();
@@ -74,6 +75,9 @@ public class NodeFailedProcessor implements Lifecycle{
         try {
             failedClientQueue.close();
             failedSchedulerQueue.close();
+            if (service != null) {
+                service.shutdownNow();
+            }
             started = false;
         }catch (Exception e) {
             log.error("NodeFailedProcessor shutdown failed", e);

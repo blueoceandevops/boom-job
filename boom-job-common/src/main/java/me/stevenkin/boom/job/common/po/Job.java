@@ -12,15 +12,9 @@ import java.time.LocalDateTime;
 public class Job {
     private Long id;
     private String jobClass;
-    private Integer type;
     private Integer status;
     private String schedulerId;
     private String cron;
-    private LocalDateTime startTime;
-    private LocalDateTime endTime;
-    private Integer repeatCount;
-    private Integer repeatInterval;
-    private boolean isRepeatForever;
     private String desc;
     private Long appId;
     private LocalDateTime createTime;
