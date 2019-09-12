@@ -12,6 +12,8 @@ import java.time.LocalDateTime;
 public class JobConfig {
     private Long id;
     private Long jobId;
+    private String cron;
+    private String desc;
     private boolean misfire;
     private boolean allowConcurrent;
     private String jobParam;

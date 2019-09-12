@@ -18,4 +18,6 @@ public class JobInstance {
     private LocalDateTime startTime;
     private LocalDateTime expectedEndTime;
     private LocalDateTime endTime;
+    private LocalDateTime createTime;
+    private LocalDateTime updateTime;
 }

@@ -72,6 +72,8 @@ public class JobExecutor {
             shard.setMaxShardPullCount(jobDetail.getJobConfig().getMaxShardPullCount());
             shard.setPullCount(0);
             shard.setStartTime(LocalDateTime.now());
+            shard.setCreateTime(shard.getStartTime());
+            shard.setUpdateTime(shard.getStartTime());
             jobInstanceShardDao.insertJobInstanceShard(shard);
             jobShardIds.add(shard.getId());
         }

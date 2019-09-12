@@ -56,7 +56,7 @@ public class JobManager implements InitializingBean, DisposableBean {
     private Map<Long, ScheduledJob> jobCaches = new ConcurrentHashMap<>();
 
     public synchronized Boolean onlineJob(Long jobId){
-        Integer n = jobScheduleDao.lockJob(jobId, schedulerContext.getSchedulerId());
+        Integer n = jobScheduleDao.schedulerJob(jobId, schedulerContext.getSchedulerId());
         if (n < 1) {
             return Boolean.FALSE;
         }

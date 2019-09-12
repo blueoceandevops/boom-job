@@ -154,7 +154,7 @@ public class ScheduledJob implements Lifecycle {
         TriggerBuilder<Trigger> triggerBuilder = newTrigger();
 
         triggerBuilder.withIdentity(buildTriggerKey(jobDetail.getJobKey()));
-        CronScheduleBuilder cronScheduleBuilder = cronSchedule(job.getCron());
+        CronScheduleBuilder cronScheduleBuilder = cronSchedule(jobDetail.getJobConfig().getCron());
         //TODO misfire
         triggerBuilder.withSchedule(cronScheduleBuilder);
 

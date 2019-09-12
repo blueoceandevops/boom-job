@@ -14,8 +14,6 @@ public class Job {
     private String jobClass;
     private Integer status;
     private String schedulerId;
-    private String cron;
-    private String desc;
     private Long appId;
     private LocalDateTime createTime;
     private LocalDateTime updateTime;

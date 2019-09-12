@@ -20,4 +20,7 @@ public class JobInstanceShard {
     private Integer maxShardPullCount;
     private LocalDateTime startTime;
     private LocalDateTime endTime;
+    private Long executeTime;
+    private LocalDateTime createTime;
+    private LocalDateTime updateTime;
 }
