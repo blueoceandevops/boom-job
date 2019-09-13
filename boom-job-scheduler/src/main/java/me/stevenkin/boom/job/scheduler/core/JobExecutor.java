@@ -52,6 +52,8 @@ public class JobExecutor {
         jobInstance.setShardCount(jobDetail.getJobConfig().getShardCount());
         jobInstance.setStartTime(LocalDateTime.now());
         jobInstance.setExpectedEndTime(jobInstance.getStartTime().plusSeconds(jobDetail.getJobConfig().getTimeout()));
+        jobInstance.setCreateTime(jobInstance.getStartTime());
+        jobInstance.setUpdateTime(jobInstance.getStartTime());
         if (allowConcurrent) {
             n = jobInstanceDao.insertJobInstance(jobInstance);
         }else {

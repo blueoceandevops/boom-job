@@ -6,6 +6,7 @@ import lombok.NoArgsConstructor;
 
 import java.io.Serializable;
 import java.time.Instant;
+import java.time.LocalDateTime;
 
 @Data
 @NoArgsConstructor
@@ -18,6 +19,8 @@ public class JobExecReport implements Serializable{
     private Long jobShardId;
     private String clientId;
     private JobResult jobResult;
+    private LocalDateTime startTime;
+    private LocalDateTime endTime;
     private Long executeTime;
     private Throwable exception;
 

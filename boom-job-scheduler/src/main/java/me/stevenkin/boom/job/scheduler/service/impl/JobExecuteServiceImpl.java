@@ -8,10 +8,13 @@ import me.stevenkin.boom.job.common.kit.NameKit;
 import me.stevenkin.boom.job.common.po.JobInstance;
 import me.stevenkin.boom.job.common.po.JobInstanceShard;
 import me.stevenkin.boom.job.common.po.JobKey;
+import me.stevenkin.boom.job.common.po.JobShardExecuteLog;
 import me.stevenkin.boom.job.common.service.JobExecuteService;
 import me.stevenkin.boom.job.data.dao.JobInfoDao;
 import me.stevenkin.boom.job.data.dao.JobInstanceDao;
 import me.stevenkin.boom.job.data.dao.JobInstanceShardDao;
+import me.stevenkin.boom.job.data.dao.JobShardExecuteLogDao;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,6 +32,8 @@ public class JobExecuteServiceImpl implements JobExecuteService {
     private JobInstanceDao jobInstanceDao;
     @Autowired
     private JobInstanceShardDao jobInstanceShardDao;
+    @Autowired
+    private JobShardExecuteLogDao jobShardExecuteLogDao;
 
     @Override
     @Transactional
@@ -90,6 +95,10 @@ public class JobExecuteServiceImpl implements JobExecuteService {
             default:
                 throw new IllegalStateException();
         }
-        //TODO send to log system
+        //send to log system
+        JobShardExecuteLog log = new JobShardExecuteLog();
+        BeanUtils.copyProperties(jobExecReport, log);
+        log.setJobResult(jobExecReport.getJobResult().getCode());
+        jobShardExecuteLogDao.insert(log);
     }
 }

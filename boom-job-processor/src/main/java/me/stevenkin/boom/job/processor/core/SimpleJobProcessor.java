@@ -10,7 +10,9 @@ import me.stevenkin.boom.job.common.service.JobProcessor;
 import me.stevenkin.boom.job.common.service.ShardExecuteService;
 import org.springframework.beans.BeanUtils;
 
+import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
@@ -70,23 +72,25 @@ public class SimpleJobProcessor implements JobProcessor {
     private JobExecReport executeJobShard(JobInstanceShardDto dto) {
         JobResult result;
         Throwable error = null;
-        Instant startTime = Instant.now();
-        Instant endTime;
+        LocalDateTime startTime = LocalDateTime.now();
+        LocalDateTime endTime;
         try {
             result = job.execute(buildJobContext(dto));
-            endTime = Instant.now();
+            endTime = LocalDateTime.now();
         } catch (Throwable throwable) {
             result = JobResult.FAIL;
             error = throwable;
-            endTime = Instant.now();
+            endTime = LocalDateTime.now();
             log.error("some error happen when service {} is executing", jobId, throwable);
         }
-        Long execTime = endTime.toEpochMilli() - startTime.toEpochMilli();
+        Long execTime = Duration.between(startTime, endTime).toMillis();
         JobExecReport jobExecReport = new JobExecReport();
         jobExecReport.setJobKey(jobId);
         jobExecReport.setJobInstanceId(dto.getJobInstanceId());
         jobExecReport.setJobShardId(dto.getJobShardId());
         jobExecReport.setClientId(jobClient.clientId());
+        jobExecReport.setStartTime(startTime);
+        jobExecReport.setEndTime(endTime);
         jobExecReport.setExecuteTime(execTime);
         jobExecReport.setJobResult(result);
         jobExecReport.setException(error);
