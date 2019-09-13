@@ -13,7 +13,7 @@ public interface JobExecuteService {
 
     List<Long> fetchMoreShardIds(Long jobInstance);
 
-    Boolean checkJobInstanceIsFinal(Long jobInstance);
+    Boolean checkJobInstanceIsFinish(Long jobInstance);
 
     void reportJobExecResult(JobExecReport jobExecReport);
 

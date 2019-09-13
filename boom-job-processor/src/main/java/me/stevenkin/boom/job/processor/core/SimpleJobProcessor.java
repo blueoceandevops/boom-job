@@ -14,10 +14,7 @@ import java.time.Instant;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.LinkedBlockingQueue;
 
 @Getter
 @NoArgsConstructor
@@ -56,7 +53,7 @@ public class SimpleJobProcessor implements JobProcessor {
         shardIds.addAll(jobShardIds);
         executor.submit(() -> {
             log.info("service {} is fired", jobId);
-            while (!jobExecuteService.checkJobInstanceIsFinal(jobInstanceId)) {
+            while (!jobExecuteService.checkJobInstanceIsFinish(jobInstanceId)) {
                 Long id;
                 while ((id = shardIds.poll()) != null) {
                     JobInstanceShardDto jobInstanceShardDto = jobExecuteService.fetchOneShard(new FetchShardRequest(id, jobClient.clientId()));

@@ -30,7 +30,7 @@ public class JobExecuteServiceTest implements JobExecuteService {
     }
 
     @Override
-    public Boolean checkJobInstanceIsFinal(Long jobInstance) {
+    public Boolean checkJobInstanceIsFinish(Long jobInstance) {
         return count <= 0L;
     }
 

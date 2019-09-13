@@ -19,7 +19,7 @@
         </dependency>
         <dependency>
             <groupId>me.stevenkin</groupId>
-            <artifactId>boom-job-data</artifactId>
+            <artifactId>boom-job-storage</artifactId>
             <version>0.0.1</version>
         </dependency>
         <dependency>

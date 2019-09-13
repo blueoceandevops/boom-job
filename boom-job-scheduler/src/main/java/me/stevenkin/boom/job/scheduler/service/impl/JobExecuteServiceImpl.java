@@ -59,8 +59,19 @@ public class JobExecuteServiceImpl implements JobExecuteService {
     }
 
     @Override
-    public Boolean checkJobInstanceIsFinal(Long jobInstance) {
-        return jobInstanceDao.countFinalById(jobInstance) > 0;
+    public Boolean checkJobInstanceIsFinish(Long jobInstance) {
+        List<JobInstanceShard> shards = jobInstanceShardDao.selectByJobInstanceId(jobInstance);
+        long count = shards.stream().filter(s -> s.getStatus() != 0).count();
+        boolean isFinished = jobInstanceDao.selectById(jobInstance).getShardCount() == count;
+        if (isFinished) {
+            boolean isFailed = shards.stream().anyMatch(s -> s.getStatus() == 2 || s.getStatus() == 3);
+            if (isFailed) {
+                jobInstanceDao.updateJobInstanceStatus(jobInstance, 0, 2);
+            }else {
+                jobInstanceDao.updateJobInstanceStatus(jobInstance, 0, 1);
+            }
+        }
+        return isFinished;
     }
 
     @Override
