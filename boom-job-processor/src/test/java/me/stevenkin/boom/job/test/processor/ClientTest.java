@@ -1,4 +1,4 @@
-package me.stevenkin.boom.job.example;
+package me.stevenkin.boom.job.test.processor;
 
 import com.alibaba.dubbo.config.*;
 import lombok.extern.slf4j.Slf4j;
@@ -9,11 +9,13 @@ import me.stevenkin.boom.job.common.service.JobProcessor;
 import me.stevenkin.boom.job.common.service.RegisterService;
 import me.stevenkin.boom.job.common.service.ShardExecuteService;
 import me.stevenkin.boom.job.processor.core.BoomJobClient;
+import org.junit.Test;
 
 @Slf4j
 public class ClientTest {
 
-    public static void main(String[] args) {
+    @Test
+    public void test() {
         log.info("start test......");
         ApplicationConfig application = new ApplicationConfig();
         RegistryConfig registry = new RegistryConfig();
@@ -62,13 +64,13 @@ public class ClientTest {
         reference.setInterface(JobProcessor.class);
         reference.setGroup("stevenkin_test_0.0.1_me.stevenkin.boom.job.example.TestJob");
         JobProcessor jobProcessor = reference.get();
-        JobFireResponse response = jobProcessor.fireJob(new JobFireRequest(
+        /*JobFireResponse response = jobProcessor.fireJob(new JobFireRequest(
                 "stevenkin_test_0.0.1_me.stevenkin.boom.job.example.TestJob",
                 "default",
                 0L,
                 3L,
                 "127.0.0.1"));
-        log.info(response.toString());
+        log.info(response.toString());*/
     }
 
 }

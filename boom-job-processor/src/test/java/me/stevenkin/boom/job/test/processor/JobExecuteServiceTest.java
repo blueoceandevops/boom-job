@@ -1,10 +1,13 @@
-package me.stevenkin.boom.job.example;
+package me.stevenkin.boom.job.test.processor;
 
 import lombok.extern.slf4j.Slf4j;
+import me.stevenkin.boom.job.common.dto.FetchShardRequest;
 import me.stevenkin.boom.job.common.dto.FetchShardResponse;
 import me.stevenkin.boom.job.common.dto.JobExecReport;
 import me.stevenkin.boom.job.common.dto.JobInstanceShardDto;
 import me.stevenkin.boom.job.common.service.JobExecuteService;
+
+import java.util.List;
 
 @Slf4j
 public class JobExecuteServiceTest implements JobExecuteService {
@@ -12,21 +15,13 @@ public class JobExecuteServiceTest implements JobExecuteService {
     private Long count = 9L;
 
     @Override
-    public FetchShardResponse fetchOneShard(Long jobInstance) {
-        log.info(jobInstance.toString());
-        return new FetchShardResponse(new JobInstanceShardDto("stevenkin_test_0.0.1_me.stevenkin.boom.job.TestJob",
-                "default",
-                0L,
-                0L,
-                0L,
-                "",
-                100L), false);
+    public JobInstanceShardDto fetchOneShard(FetchShardRequest request) {
+        return null;
     }
 
     @Override
-    public Long fetchMoreShardCount(Long jobInstance) {
-        count -= 3L;
-        return 3L;
+    public List<Long> fetchMoreShardIds(Long jobInstance) {
+        return null;
     }
 
     @Override

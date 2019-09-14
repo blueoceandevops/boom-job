@@ -1,4 +1,4 @@
-package me.stevenkin.boom.job.data.dao;
+package me.stevenkin.boom.job.storage.dao;
 
 import me.stevenkin.boom.job.common.po.User;
 

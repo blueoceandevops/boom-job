@@ -1,4 +1,4 @@
-package me.stevenkin.boom.job.example;
+package me.stevenkin.boom.job.test.processor;
 
 import me.stevenkin.boom.job.common.service.ShardExecuteService;
 

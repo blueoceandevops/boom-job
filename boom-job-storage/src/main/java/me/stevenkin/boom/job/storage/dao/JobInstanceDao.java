@@ -1,4 +1,4 @@
-package me.stevenkin.boom.job.data.dao;
+package me.stevenkin.boom.job.storage.dao;
 
 import me.stevenkin.boom.job.common.po.JobInstance;
 import org.apache.ibatis.annotations.*;
@@ -24,7 +24,7 @@ public interface JobInstanceDao {
     @Options(useGeneratedKeys = true, keyColumn = "id", keyProperty = "id")
     Integer insertJobInstanceOnlyAllowOneRunning(JobInstance jobInstance);
 
-    @Update("update job_instance set status = #{status} where id = #{id} and status = #{expectStatus}")
+    @Update("update job_instance set status = #{status}, end_time = now(), update_time = now() where id = #{id} and status = #{expectStatus}")
     Integer updateJobInstanceStatus(@Param("id") Long id, @Param("expectStatus") Integer expectStatus, @Param("status") Integer status);
 
     @Select("select * from job_instance where id = #{id}")

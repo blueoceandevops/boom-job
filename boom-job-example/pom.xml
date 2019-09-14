@@ -43,7 +43,7 @@
                     </descriptorRefs>
                     <archive>
                         <manifest>
-                            <mainClass>me.stevenkin.boom.job.example.ClientTest</mainClass>
+                            <mainClass>me.stevenkin.boom.job.test.processor.ClientTest</mainClass>
                         </manifest>
                     </archive>
                 </configuration>

@@ -176,8 +176,7 @@ public class ScheduledJob implements Lifecycle {
     }
 
     private boolean isDiff(me.stevenkin.boom.job.common.dto.JobDetail jobDetail) {
-        //TODO diff
-        return false;
+        return !jobDetail.getJobConfig().getCron().equals(this.jobDetail.getJobConfig().getCron());
     }
 
     @Override

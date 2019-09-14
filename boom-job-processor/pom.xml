@@ -19,7 +19,7 @@
         </dependency>
         <dependency>
             <groupId>me.stevenkin</groupId>
-            <artifactId>boom-job-data</artifactId>
+            <artifactId>boom-job-storage</artifactId>
             <version>0.0.1</version>
         </dependency>
         <dependency>
@@ -29,6 +29,11 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>com.alibaba</groupId>

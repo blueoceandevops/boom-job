@@ -1,4 +1,4 @@
-package me.stevenkin.boom.job.example;
+package me.stevenkin.boom.job.test.processor;
 
 import lombok.extern.slf4j.Slf4j;
 import me.stevenkin.boom.job.common.dto.JobContext;
