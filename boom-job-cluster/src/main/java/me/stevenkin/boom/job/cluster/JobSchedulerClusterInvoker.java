@@ -71,6 +71,20 @@ public class JobSchedulerClusterInvoker<T> extends FailfastClusterInvoker<T> {
                         throwables.add(e);
                     }
                 }
+                if (size > jobShardIds.size()) {
+                    for (int j = jobShardIds.size(); j < size; j++) {
+                        JobFireRequest request2 = new JobFireRequest();
+                        request2.setJobKey(request.getJobKey());
+                        request2.setSchedulerId(request.getSchedulerId());
+                        request2.setJobInstanceId(request.getJobInstanceId());
+                        request2.setJobShardIds(new ArrayList<>());
+                        try {
+                            results.add(invokers.get(i % invokers.size()).invoke(invocation));
+                        }catch (Throwable e) {
+                            throwables.add(e);
+                        }
+                    }
+                }
                 if (throwables.size() == size) {
                     throw new RpcException("all provider is not alive, select from all providers " + invokers + " for service " + getInterface().getName() + " method " + invocation.getMethodName() + " on consumer " + NetUtils.getLocalHost() + " use dubbo version " + Version.getVersion() + ", but no luck to perform the invocation. Last error is: " + throwables.get(throwables.size() - 1).getMessage(), throwables.get(throwables.size() - 1).getCause() != null ? throwables.get(throwables.size() - 1).getCause() : throwables.get(throwables.size() - 1));
                 }
