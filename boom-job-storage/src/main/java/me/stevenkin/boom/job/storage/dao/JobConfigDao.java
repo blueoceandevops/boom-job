@@ -8,4 +8,6 @@ public interface JobConfigDao {
 
     JobConfig selectByJobId(Long jobId);
 
+    Integer insertOrUpdate(JobConfig jobConfig);
+
 }

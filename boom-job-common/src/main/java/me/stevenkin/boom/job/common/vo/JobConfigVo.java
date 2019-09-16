@@ -1,17 +1,16 @@
-package me.stevenkin.boom.job.common.po;
+package me.stevenkin.boom.job.common.vo;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
+import java.io.Serializable;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class JobConfig {
-    private Long id;
-    private Long jobId;
+public class JobConfigVo implements Serializable {
+    private static final long serialVersionUID = -775260523450903720L;
     private String cron;
     private String desc;
     private boolean onlineNow;
@@ -21,7 +20,5 @@ public class JobConfig {
     private Integer shardCount;
     private String shardParams;
     private Integer maxShardPullCount;
-    private Long timeout;// unit is second
-    private LocalDateTime creatTime;
-    private LocalDateTime updateTime;
+    private Long timeout;
 }

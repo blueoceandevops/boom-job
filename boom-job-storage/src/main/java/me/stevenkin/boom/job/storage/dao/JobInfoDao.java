@@ -12,11 +12,11 @@ public interface JobInfoDao {
 
     JobKey selectJobKeyById(Long id);
 
-    List<Job> selectJobsByApp(App app);
+    List<Job> selectJobsByAppId(Long appId);
 
-    Job selectJobByAppAndJobClass(App app, String jobClass);
+    Job selectJobByJobKey(String author, String appName, String jobClass);
 
-    Integer countByApp(App app);
+    Integer countByAppId(Long appId);
 
     Integer count();
 
