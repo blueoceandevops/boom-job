@@ -4,7 +4,6 @@ import me.stevenkin.boom.job.common.dto.JobFireRequest;
 import me.stevenkin.boom.job.common.dto.JobFireResponse;
 
 public interface JobProcessor {
-
     /**
      * fire this service
      * @param request

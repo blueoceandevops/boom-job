@@ -18,6 +18,7 @@
         <module>boom-job-console</module>
         <module>boom-job-storage</module>
         <module>boom-job-example</module>
+        <module>boom-job-cluster</module>
     </modules>
     <packaging>pom</packaging>
 

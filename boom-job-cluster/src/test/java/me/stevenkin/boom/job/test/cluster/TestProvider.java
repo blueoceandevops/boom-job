@@ -1,4 +1,4 @@
-package me.stevenkin.boom.job.test.scheduler;
+package me.stevenkin.boom.job.test.cluster;
 
 import com.alibaba.dubbo.config.ServiceConfig;
 

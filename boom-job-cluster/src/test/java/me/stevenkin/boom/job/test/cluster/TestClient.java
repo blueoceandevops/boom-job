@@ -1,7 +1,9 @@
-package me.stevenkin.boom.job.test.scheduler;
+package me.stevenkin.boom.job.test.cluster;
 
 import com.alibaba.dubbo.config.*;
 import lombok.extern.slf4j.Slf4j;
+
+import java.io.IOException;
 
 @Slf4j
 public class TestClient {
@@ -30,6 +32,10 @@ public class TestClient {
         TestConfig config = new TestConfig();
         TestClient test = new TestClient(config);
         test.test();
-        test.after();
+        try {
+            System.in.read();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }

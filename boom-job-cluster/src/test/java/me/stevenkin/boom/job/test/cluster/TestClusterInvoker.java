@@ -1,4 +1,4 @@
-package me.stevenkin.boom.job.test.scheduler;
+package me.stevenkin.boom.job.test.cluster;
 
 import com.alibaba.dubbo.rpc.*;
 import com.alibaba.dubbo.rpc.cluster.Directory;
@@ -17,7 +17,8 @@ public class TestClusterInvoker<T> extends FailfastClusterInvoker<T> {
 
     @Override
     public Result doInvoke(Invocation invocation, List<Invoker<T>> invokers, LoadBalance loadbalance) throws RpcException {
-        Class<?> interf = invocation.getInvoker().getInterface();
+        checkInvokers(invokers, invocation);
+        Class<?> interf = invokers.get(0).getInterface();
         String method = invocation.getMethodName();
         Class<?>[] types = invocation.getParameterTypes();
         if (interf.equals(TestService.class) && method.equals("hello") && types != null && types.length == 1 && types[0].equals(String.class)) {
@@ -31,7 +32,9 @@ public class TestClusterInvoker<T> extends FailfastClusterInvoker<T> {
                 }
             }
             throwables.forEach(e -> log.error(e.getMessage()));
-            Result result = new RpcResult(results.get(0).getValue());
+            StringBuilder stringBuilder = new StringBuilder();
+            results.forEach(r -> stringBuilder.append(r.getValue()));
+            Result result = new RpcResult(stringBuilder.toString());
             return result;
         }
         return super.doInvoke(invocation, invokers, loadbalance);

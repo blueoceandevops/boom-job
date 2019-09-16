@@ -6,6 +6,7 @@ import lombok.NoArgsConstructor;
 import me.stevenkin.boom.job.common.enums.JobFireResult;
 
 import java.io.Serializable;
+import java.util.List;
 
 @Data
 @NoArgsConstructor
@@ -14,5 +15,5 @@ public class JobFireResponse implements Serializable {
     private static final long serialVersionUID = -5130877794594938052L;
 
     private JobFireResult jobFireResult;
-    private String clientId;
+    private List<String> clientId;
 }
