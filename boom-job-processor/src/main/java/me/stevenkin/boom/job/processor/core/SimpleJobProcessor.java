@@ -13,6 +13,7 @@ import org.springframework.beans.BeanUtils;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
@@ -46,8 +47,10 @@ public class SimpleJobProcessor implements JobProcessor {
 
     @Override
     public JobFireResponse fireJob(JobFireRequest request) {
+        List<String> clients = new ArrayList<>();
+        clients.add(jobClient.clientId());
         if (!request.getJobKey().equals(jobId)) {
-            return new JobFireResponse(JobFireResult.FIRE_FAILED, jobClient.clientId());
+            return new JobFireResponse(JobFireResult.FIRE_FAILED, clients);
         }
         Long jobInstanceId = request.getJobInstanceId();
         List<Long> jobShardIds = request.getJobShardIds();
@@ -66,7 +69,7 @@ public class SimpleJobProcessor implements JobProcessor {
                 shardIds.addAll(jobExecuteService.fetchMoreShardIds(jobInstanceId));
             }
         });
-        return new JobFireResponse(JobFireResult.FIRE_SUCCESS, jobClient.clientId());
+        return new JobFireResponse(JobFireResult.FIRE_SUCCESS, clients);
     }
 
     private JobExecReport executeJobShard(JobInstanceShardDto dto) {
