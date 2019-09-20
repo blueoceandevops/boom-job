@@ -3,6 +3,7 @@ package me.stevenkin.boom.job.scheduler.service.impl;
 import com.alibaba.dubbo.config.annotation.Reference;
 import lombok.extern.slf4j.Slf4j;
 import me.stevenkin.boom.job.common.dto.JobResult;
+import me.stevenkin.boom.job.common.exception.ScheduleException;
 import me.stevenkin.boom.job.common.kit.NameKit;
 import me.stevenkin.boom.job.common.po.JobInstanceShard;
 import me.stevenkin.boom.job.common.po.JobKey;
@@ -36,7 +37,9 @@ public class FailoverServiceImpl implements FailoverService {
     public void processClientFailed(String clientId) {
         List<JobInstanceShard> shards = jobInstanceShardDao.selectRunningByClientId(clientId);
         shards.forEach(s -> {
-            jobInstanceShardDao.unlockJobInstanceShard(s.getId());
+            Integer n = jobInstanceShardDao.unlockJobInstanceShard(s.getId());
+            if (n != 1)
+                throw new IllegalStateException();
             //send to log system
             JobShardExecuteLog log = new JobShardExecuteLog();
             log.setJobResult(JobResult.DOWNTIME.getCode());
@@ -55,6 +58,8 @@ public class FailoverServiceImpl implements FailoverService {
         jobIds.forEach(id -> {
             boolean success = jobSchedulerService.failoverJob(id, schedulerId);
             log.info("scheduler {}'s job {} failover {}", schedulerId, id, success ? "success" : "failed");
+            if (!success)
+                throw new ScheduleException();
         });
     }
 }

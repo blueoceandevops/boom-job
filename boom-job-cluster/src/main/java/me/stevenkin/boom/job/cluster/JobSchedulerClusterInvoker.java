@@ -6,6 +6,7 @@ import com.alibaba.dubbo.rpc.*;
 import com.alibaba.dubbo.rpc.cluster.Directory;
 import com.alibaba.dubbo.rpc.cluster.LoadBalance;
 import com.alibaba.dubbo.rpc.cluster.support.FailfastClusterInvoker;
+import lombok.extern.slf4j.Slf4j;
 import me.stevenkin.boom.job.common.dto.JobFireRequest;
 import me.stevenkin.boom.job.common.dto.JobFireResponse;
 import me.stevenkin.boom.job.common.enums.JobFireResult;
@@ -16,6 +17,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Slf4j
 public class JobSchedulerClusterInvoker<T> extends FailfastClusterInvoker<T> {
     public JobSchedulerClusterInvoker(Directory<T> directory) {
         super(directory);
@@ -41,11 +43,13 @@ public class JobSchedulerClusterInvoker<T> extends FailfastClusterInvoker<T> {
                 }
             }
             if (throwables.size() == size) {
-                throw new RpcException("all provider is not alive " + loadbalance.getClass().getSimpleName() + " select from all providers " + invokers + " for service " + getInterface().getName() + " method " + invocation.getMethodName() + " on consumer " + NetUtils.getLocalHost() + " use dubbo version " + Version.getVersion() + ", but no luck to perform the invocation. Last error is: " + throwables.get(throwables.size() - 1).getMessage(), throwables.get(throwables.size() - 1).getCause() != null ? throwables.get(throwables.size() - 1).getCause() : throwables.get(throwables.size() - 1));
+                log.error("all provider is not alive " + loadbalance.getClass().getSimpleName() + " select from all providers " + invokers + " for service " + getInterface().getName() + " method " + invocation.getMethodName() + " on consumer " + NetUtils.getLocalHost() + " use dubbo version " + Version.getVersion() + ", but no luck to perform the invocation. Last error is: " + throwables.get(throwables.size() - 1).getMessage(), throwables.get(throwables.size() - 1).getCause() != null ? throwables.get(throwables.size() - 1).getCause() : throwables.get(throwables.size() - 1));
+                return new RpcResult(Boolean.FALSE);
             }
             List<Result> results1 = results.stream().filter(r -> Boolean.TRUE.equals(r.getValue())).collect(Collectors.toList());
             if (results1.size() > 1) {
-                throw new RpcException("a biz exception happen, select from all providers " + invokers + " for service " + getInterface().getName() + " method " + invocation.getMethodName() + " on consumer " + NetUtils.getLocalHost() + " use dubbo version " + Version.getVersion() + " has multiple success, but only allow one success");
+                log.error("a biz exception happen, select from all providers " + invokers + " for service " + getInterface().getName() + " method " + invocation.getMethodName() + " on consumer " + NetUtils.getLocalHost() + " use dubbo version " + Version.getVersion() + " has multiple success, but only allow one success");
+                return new RpcResult(Boolean.FALSE);
             }
             if (results1.size() == 1) {
                 return new RpcResult(Boolean.TRUE);
@@ -86,11 +90,13 @@ public class JobSchedulerClusterInvoker<T> extends FailfastClusterInvoker<T> {
                     }
                 }
                 if (throwables.size() == size) {
-                    throw new RpcException("all provider is not alive, select from all providers " + invokers + " for service " + getInterface().getName() + " method " + invocation.getMethodName() + " on consumer " + NetUtils.getLocalHost() + " use dubbo version " + Version.getVersion() + ", but no luck to perform the invocation. Last error is: " + throwables.get(throwables.size() - 1).getMessage(), throwables.get(throwables.size() - 1).getCause() != null ? throwables.get(throwables.size() - 1).getCause() : throwables.get(throwables.size() - 1));
+                    log.error("all provider is not alive, select from all providers " + invokers + " for service " + getInterface().getName() + " method " + invocation.getMethodName() + " on consumer " + NetUtils.getLocalHost() + " use dubbo version " + Version.getVersion() + ", but no luck to perform the invocation. Last error is: " + throwables.get(throwables.size() - 1).getMessage(), throwables.get(throwables.size() - 1).getCause() != null ? throwables.get(throwables.size() - 1).getCause() : throwables.get(throwables.size() - 1));
+                    return new RpcResult(new JobFireResponse(JobFireResult.FIRE_FAILED, null));
                 }
                 boolean isFailed = results.stream().anyMatch(r -> JobFireResult.FIRE_FAILED.equals(((JobFireResponse)(r.getValue())).getJobFireResult()));
                 if (isFailed) {
-                    throw new RpcException("a biz exception happen, select from all providers " + invokers + " for service " + getInterface().getName() + " method " + invocation.getMethodName() + " on consumer " + NetUtils.getLocalHost() + " use dubbo version " + Version.getVersion() + " one provider return failed");
+                    log.error("a biz exception happen, select from all providers " + invokers + " for service " + getInterface().getName() + " method " + invocation.getMethodName() + " on consumer " + NetUtils.getLocalHost() + " use dubbo version " + Version.getVersion() + " one provider return failed");
+                    return new RpcResult(new JobFireResponse(JobFireResult.FIRE_FAILED, null));
                 }
                 List<String> clients = new ArrayList<>();
                 results.stream().filter(r -> JobFireResult.FIRE_SUCCESS.equals(((JobFireResponse)(r.getValue()))))
