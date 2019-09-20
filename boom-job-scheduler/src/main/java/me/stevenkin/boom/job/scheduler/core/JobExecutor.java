@@ -36,7 +36,6 @@ public class JobExecutor {
 
     @Transactional(rollbackFor = Exception.class)
     public void execute(JobDetail jobDetail, JobProcessor jobProcessor, JobExecutionContext context) {
-        Integer n;
         Long jobId = jobDetail.getJob().getId();
         boolean allowConcurrent = jobDetail.getJobConfig().isAllowConcurrent();
         JobInstance jobInstance = new JobInstance();
@@ -48,6 +47,7 @@ public class JobExecutor {
         jobInstance.setExpectedEndTime(jobInstance.getStartTime().plusSeconds(jobDetail.getJobConfig().getTimeout()));
         jobInstance.setCreateTime(jobInstance.getStartTime());
         jobInstance.setUpdateTime(jobInstance.getStartTime());
+        Integer n;
         if (allowConcurrent) {
             n = jobInstanceDao.insertJobInstance(jobInstance);
         }else {

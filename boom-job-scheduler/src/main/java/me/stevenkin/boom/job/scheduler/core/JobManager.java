@@ -2,6 +2,8 @@ package me.stevenkin.boom.job.scheduler.core;
 
 import lombok.Data;
 import me.stevenkin.boom.job.common.dto.JobDetail;
+import me.stevenkin.boom.job.common.enums.JobStatus;
+import me.stevenkin.boom.job.common.exception.ScheduleException;
 import me.stevenkin.boom.job.common.po.App;
 import me.stevenkin.boom.job.common.po.Job;
 import me.stevenkin.boom.job.common.po.JobConfig;
@@ -107,9 +109,9 @@ public class JobManager implements InitializingBean, DisposableBean {
             return Boolean.FALSE;
         }
         ScheduledJob scheduledJob = jobCaches.get(jobId);
-        scheduledJob.offline();
+        boolean b = scheduledJob.offline();
         jobCaches.remove(jobId);
-        return Boolean.TRUE;
+        return b;
     }
 
     public synchronized Boolean reloadJob(Long jobId){
@@ -117,6 +119,32 @@ public class JobManager implements InitializingBean, DisposableBean {
             return Boolean.FALSE;
 
         return jobCaches.get(jobId).reload(jobDetail(jobId));
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public synchronized Boolean failoverJob(Long jobId, String schedulerId) {
+        Integer n = jobScheduleDao.failoverJob(jobId, schedulerId, schedulerContext.getSchedulerId());
+        if (n < 1) {
+            return Boolean.FALSE;
+        }
+        Job job = jobInfoDao.selectById(jobId);
+        Assert.isTrue(job != null, "job " + jobId + " must be exist");
+        JobStatus jobStatus = JobStatus.fromCode(job.getStatus());
+        ScheduledJob scheduledJob;
+        switch (jobStatus) {
+            case ONLINE:
+                scheduledJob = new ScheduledJob(jobDetail(jobId), this);
+                scheduledJob.start();
+                jobCaches.put(jobId, scheduledJob);
+                break;
+            case PAUSED:
+                scheduledJob = new ScheduledJob(jobDetail(jobId), this);
+                jobCaches.put(jobId, scheduledJob);
+                break;
+            default:
+                throw new ScheduleException();
+        }
+        return Boolean.TRUE;
     }
 
     private JobDetail jobDetail(Long jobId) {

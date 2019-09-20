@@ -14,6 +14,8 @@ public class JobResult implements Serializable {
 
     public static final JobResult RETRY = new JobResult(2);
 
+    public static final JobResult DOWNTIME = new JobResult(-1);
+
     @Setter @Getter
     private int code;
 

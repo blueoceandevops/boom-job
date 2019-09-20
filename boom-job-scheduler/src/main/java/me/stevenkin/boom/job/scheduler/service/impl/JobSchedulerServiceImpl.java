@@ -43,4 +43,9 @@ public class JobSchedulerServiceImpl implements JobSchedulerService {
     public Boolean reloadJob(Long jobId) {
         return jobManager.reloadJob(jobId);
     }
+
+    @Override
+    public Boolean failoverJob(Long jobId, String schedulerId) {
+        return jobManager.failoverJob(jobId, schedulerId);
+    }
 }

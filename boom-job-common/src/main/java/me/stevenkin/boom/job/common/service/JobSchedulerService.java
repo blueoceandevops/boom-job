@@ -14,4 +14,6 @@ public interface JobSchedulerService {
 
     Boolean reloadJob(Long jobId);
 
+    Boolean failoverJob(Long jobId, String schedulerId);
+
 }

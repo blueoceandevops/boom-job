@@ -44,7 +44,7 @@ public class JobSchedulerClusterInvoker<T> extends FailfastClusterInvoker<T> {
                 throw new RpcException("all provider is not alive " + loadbalance.getClass().getSimpleName() + " select from all providers " + invokers + " for service " + getInterface().getName() + " method " + invocation.getMethodName() + " on consumer " + NetUtils.getLocalHost() + " use dubbo version " + Version.getVersion() + ", but no luck to perform the invocation. Last error is: " + throwables.get(throwables.size() - 1).getMessage(), throwables.get(throwables.size() - 1).getCause() != null ? throwables.get(throwables.size() - 1).getCause() : throwables.get(throwables.size() - 1));
             }
             List<Result> results1 = results.stream().filter(r -> Boolean.TRUE.equals(r.getValue())).collect(Collectors.toList());
-            if (results.size() > 1) {
+            if (results1.size() > 1) {
                 throw new RpcException("a biz exception happen, select from all providers " + invokers + " for service " + getInterface().getName() + " method " + invocation.getMethodName() + " on consumer " + NetUtils.getLocalHost() + " use dubbo version " + Version.getVersion() + " has multiple success, but only allow one success");
             }
             if (results1.size() == 1) {

@@ -14,6 +14,8 @@ public interface JobInfoDao {
 
     List<Job> selectJobsByAppId(Long appId);
 
+    List<Long> selectOnlineJobBySchedulerId(String schedulerId);
+
     Job selectJobByJobKey(String author, String appName, String jobClass);
 
     Integer countByAppId(Long appId);

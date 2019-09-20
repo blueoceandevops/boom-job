@@ -37,7 +37,7 @@ public interface JobInstanceShardDao {
     List<JobInstanceShard> selectNewByJobInstanceId(@Param("jobInstanceId") Long jobInstanceId);
 
     @Select("select * from job_instance_shard where client_id = #{clientId} and status = 1")
-    List<JobInstanceShard> selectRunningByClientId(@Param("clientId") Long clientId);
+    List<JobInstanceShard> selectRunningByClientId(@Param("clientId") String clientId);
 
     @Select("select * from job_instance_shard")
     List<JobInstanceShard> selectAll();

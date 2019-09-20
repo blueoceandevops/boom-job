@@ -48,6 +48,7 @@ public class ScheduledJob implements Lifecycle {
         this.schedulers = jobManager.getSchedulers();
         this.zkClient = jobManager.getZkClient();
         this.jobExecutor  = jobManager.getJobExecutor();
+        buildJobProcessor(jobDetail.getJobKey());
         this.isPaused = true;
     }
 
@@ -177,7 +178,6 @@ public class ScheduledJob implements Lifecycle {
 
     @Override
     public void start() {
-        buildJobProcessor(jobDetail.getJobKey());
         schedule();
     }
 
