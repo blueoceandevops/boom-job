@@ -22,10 +22,10 @@ public interface JobInfoDao {
 
     Integer insert(Job job);
 
-    Integer delete(Job job);
+    Integer delete(Long id);
 
     Integer update(Job job);
 
-    Integer updateWhereStatusIs(Integer status, Job job);
+    Integer updateByStatus(Integer status, Job job);
 
 }

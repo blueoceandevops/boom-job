@@ -36,6 +36,7 @@ public class RegisterServiceImpl implements RegisterService {
                 job.setAppId(app.getId());
                 job.setJobClass(jobClass);
                 job.setCreateTime(LocalDateTime.now());
+                job.setUpdateTime(job.getCreateTime());
                 jobInfoDao.insert(job);
             }
             return new RegisterResponse(RegisterResponse.SUCCESS, null);

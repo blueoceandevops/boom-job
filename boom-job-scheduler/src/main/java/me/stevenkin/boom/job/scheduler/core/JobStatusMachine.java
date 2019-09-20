@@ -15,17 +15,7 @@ public class JobStatusMachine {
 
     @PostConstruct
     public void init() {
-        statusMap.put(DISABLED, OFFLINE);
-        statusMap.put(OFFLINE, DISABLED);
-        statusMap.put(OFFLINE, ONLINE);
-        statusMap.put(ONLINE, OFFLINE);
-        statusMap.put(ONLINE, RUNNING);
-        statusMap.put(RUNNING, ONLINE);
-        statusMap.put(OFFLINE, RUNNING);
-        statusMap.put(RUNNING, OFFLINE);
-        statusMap.put(ONLINE, PAUSED);
-        statusMap.put(PAUSED, ONLINE);
-        statusMap.put(PAUSED, OFFLINE);
+
     }
 
     public boolean isLegalStatus(JobStatus from, JobStatus to) {

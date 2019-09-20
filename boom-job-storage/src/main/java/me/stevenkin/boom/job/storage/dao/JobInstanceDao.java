@@ -31,7 +31,7 @@ public interface JobInstanceDao {
     JobInstance selectById(@Param("id") Long id);
 
     @Select("select count(0) from job_instance where id = #{id}")
-    Integer countFinalById(@Param("id") Long id);
+    Integer countById(@Param("id") Long id);
 
     @Select("select * from job_instance where jobId = #{jobId}")
     List<JobInstance> selectByJobId(@Param("jobId") Long jobId);

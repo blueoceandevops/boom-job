@@ -33,6 +33,11 @@ public class JobAdminServiceImpl implements JobAdminService {
     }
 
     @Override
+    public JobConfig getJobConfigByJobId(Long jobId) {
+        return jobConfigDao.selectByJobId(jobId);
+    }
+
+    @Override
     public Boolean saveJob(JobConfigVo jobConfigVo) {
         JobConfig jobConfig = new JobConfig();
         BeanUtils.copyProperties(jobConfigVo, jobConfig);
@@ -44,8 +49,19 @@ public class JobAdminServiceImpl implements JobAdminService {
         }else if (n == 2) {
             jobSchedulerService.reloadJob(jobConfig.getJobId());
             return Boolean.TRUE;
+        }else if (n == 0) {
+            return Boolean.TRUE;
         }
         return Boolean.FALSE;
+    }
+
+    @Override
+    public Boolean deleteJobAndConfig(Long jobId) {
+        Boolean offlineSuccess = jobSchedulerService.offlineJob(jobId);
+        if (!offlineSuccess) {
+            return Boolean.FALSE;
+        }
+        return jobInfoDao.delete(jobId) > 0 && jobConfigDao.deleteByJobId(jobId) > 0;
     }
 
     @Override

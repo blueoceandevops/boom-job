@@ -10,4 +10,8 @@ public interface JobConfigDao {
 
     Integer insertOrUpdate(JobConfig jobConfig);
 
+    Integer delete(Long id);
+
+    Integer deleteByJobId(Long jobId);
+
 }

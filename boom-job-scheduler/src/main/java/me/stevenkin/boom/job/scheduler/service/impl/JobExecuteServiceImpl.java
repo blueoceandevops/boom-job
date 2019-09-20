@@ -60,7 +60,7 @@ public class JobExecuteServiceImpl implements JobExecuteService {
 
     @Override
     public List<Long> fetchMoreShardIds(Long jobInstance) {
-        return jobInstanceShardDao.selectNewByJobInstanceIdIs(jobInstance).stream().map(JobInstanceShard::getId).collect(Collectors.toList());
+        return jobInstanceShardDao.selectNewByJobInstanceId(jobInstance).stream().map(JobInstanceShard::getId).collect(Collectors.toList());
     }
 
     @Override

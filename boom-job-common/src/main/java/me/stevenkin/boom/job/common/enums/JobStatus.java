@@ -7,8 +7,6 @@ public enum JobStatus {
 
     OFFLINE(1, "offline"),
 
-    RUNNING(2, "running"),
-
     PAUSED(3, "paused"),
 
     DISABLED(-1, "disabled");

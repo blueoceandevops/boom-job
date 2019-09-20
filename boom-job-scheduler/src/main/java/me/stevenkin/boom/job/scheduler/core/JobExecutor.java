@@ -28,8 +28,6 @@ import java.util.List;
 @Slf4j
 public class JobExecutor {
     @Autowired
-    private JobScheduleDao jobScheduleDao;
-    @Autowired
     private JobInstanceDao jobInstanceDao;
     @Autowired
     private JobInstanceShardDao jobInstanceShardDao;
@@ -40,10 +38,6 @@ public class JobExecutor {
     public void execute(JobDetail jobDetail, JobProcessor jobProcessor, JobExecutionContext context) {
         Integer n;
         Long jobId = jobDetail.getJob().getId();
-        n = jobScheduleDao.triggerJob(jobId);
-        if (n < 1) {
-            throw new RuntimeException("job" + jobId + " trigger failed");
-        }
         boolean allowConcurrent = jobDetail.getJobConfig().isAllowConcurrent();
         JobInstance jobInstance = new JobInstance();
         jobInstance.setJobId(jobId);

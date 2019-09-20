@@ -22,6 +22,4 @@ public class JobConfig {
     private String shardParams;
     private Integer maxShardPullCount;
     private Long timeout;// unit is second
-    private LocalDateTime creatTime;
-    private LocalDateTime updateTime;
 }

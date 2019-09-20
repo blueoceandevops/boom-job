@@ -22,7 +22,7 @@ public interface AppInfoDao {
 
     Integer insert(App app);
 
-    Integer delete(App app);
+    Integer delete(Long id);
 
     Integer update(App app);
 

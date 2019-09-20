@@ -11,6 +11,7 @@ import java.io.Serializable;
 @AllArgsConstructor
 public class JobConfigVo implements Serializable {
     private static final long serialVersionUID = -775260523450903720L;
+    private Long jobId;
     private String cron;
     private String desc;
     private boolean onlineNow;

@@ -21,6 +21,7 @@ import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.Assert;
 
 import java.util.Map;
@@ -55,15 +56,16 @@ public class JobManager implements InitializingBean, DisposableBean {
 
     private Map<Long, ScheduledJob> jobCaches = new ConcurrentHashMap<>();
 
+    @Transactional(rollbackFor = Exception.class)
     public synchronized Boolean onlineJob(Long jobId){
-        Integer n = jobScheduleDao.schedulerJob(jobId, schedulerContext.getSchedulerId());
+        Integer n = jobScheduleDao.onlineJob(jobId, schedulerContext.getSchedulerId());
         if (n < 1) {
             return Boolean.FALSE;
         }
 
         ScheduledJob scheduledJob = new ScheduledJob(jobDetail(jobId), this);
-        jobCaches.put(jobId, scheduledJob);
         scheduledJob.start();
+        jobCaches.put(jobId, scheduledJob);
 
         return Boolean.TRUE;
     }
@@ -74,6 +76,7 @@ public class JobManager implements InitializingBean, DisposableBean {
         return jobCaches.get(jobId).trigger();
     }
 
+    @Transactional(rollbackFor = Exception.class)
     public synchronized Boolean pauseJob(Long jobId){
         if (!jobCaches.containsKey(jobId))
             return Boolean.FALSE;
@@ -84,6 +87,7 @@ public class JobManager implements InitializingBean, DisposableBean {
         return jobCaches.get(jobId).pause();
     }
 
+    @Transactional(rollbackFor = Exception.class)
     public synchronized Boolean resumeJob(Long jobId){
         if (!jobCaches.containsKey(jobId))
             return Boolean.FALSE;
@@ -94,6 +98,7 @@ public class JobManager implements InitializingBean, DisposableBean {
         return jobCaches.get(jobId).resume(jobDetail(jobId));
     }
 
+    @Transactional(rollbackFor = Exception.class)
     public synchronized Boolean offlineJob(Long jobId){
         if (!jobCaches.containsKey(jobId))
             return Boolean.FALSE;
@@ -101,7 +106,10 @@ public class JobManager implements InitializingBean, DisposableBean {
         if (n < 1) {
             return Boolean.FALSE;
         }
-        return jobCaches.get(jobId).offline();
+        ScheduledJob scheduledJob = jobCaches.get(jobId);
+        scheduledJob.offline();
+        jobCaches.remove(jobId);
+        return Boolean.TRUE;
     }
 
     public synchronized Boolean reloadJob(Long jobId){
@@ -119,7 +127,7 @@ public class JobManager implements InitializingBean, DisposableBean {
         Assert.isTrue(job != null, "job " + jobId + " must be exist");
         Assert.isTrue(jobKey != null, "job key " + jobId + " must be exist");
         Assert.isTrue(jobConfig != null, "job config" + jobId + " must be exist");
-        Assert.isTrue(app != null, "job" + jobId + " 'app must be exist");
+        Assert.isTrue(app != null, "job app" + jobId + " must be exist");
         return new JobDetail(job, app, jobKey, jobConfig);
     }
 

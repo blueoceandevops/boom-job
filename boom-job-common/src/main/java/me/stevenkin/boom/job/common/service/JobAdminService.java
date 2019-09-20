@@ -7,10 +7,14 @@ import me.stevenkin.boom.job.common.vo.JobConfigVo;
 import java.util.List;
 
 public interface JobAdminService {
-    //TODO job admin manage...
+    //job admin manage
     List<Job> listJobPagingByApp(Long appId, Integer pageNum, Integer pageSize);
 
+    JobConfig getJobConfigByJobId(Long jobId);
+
     Boolean saveJob(JobConfigVo jobConfigVo);
+
+    Boolean deleteJobAndConfig(Long jobId);
 
     //job control
     Boolean onlineJob(Long jobId);

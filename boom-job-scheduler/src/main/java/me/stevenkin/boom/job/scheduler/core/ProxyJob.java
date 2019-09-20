@@ -21,6 +21,10 @@ public class ProxyJob implements Job {
 
     @Override
     public void execute(JobExecutionContext context) throws JobExecutionException {
-        jobExecutor.execute(jobDetail, jobProcessor, context);
+        try {
+            jobExecutor.execute(jobDetail, jobProcessor, context);
+        } catch (Exception e) {
+            throw new JobExecutionException(e);
+        }
     }
 }

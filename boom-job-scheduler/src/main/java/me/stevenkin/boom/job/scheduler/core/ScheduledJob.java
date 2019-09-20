@@ -4,7 +4,7 @@ import com.alibaba.dubbo.config.ReferenceConfig;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import me.stevenkin.boom.job.common.enums.JobType;
+import me.stevenkin.boom.job.common.exception.ScheduleException;
 import me.stevenkin.boom.job.common.kit.NameKit;
 import me.stevenkin.boom.job.common.po.Job;
 import me.stevenkin.boom.job.common.po.JobKey;
@@ -14,12 +14,9 @@ import me.stevenkin.boom.job.common.zk.ZkClient;
 import me.stevenkin.boom.job.scheduler.dubbo.DubboConfigHolder;
 import org.quartz.*;
 
-import java.time.ZoneId;
-import java.util.Date;
 
 import static org.quartz.CronScheduleBuilder.cronSchedule;
 import static org.quartz.JobBuilder.newJob;
-import static org.quartz.SimpleScheduleBuilder.simpleSchedule;
 import static org.quartz.TriggerBuilder.newTrigger;
 
 @Data
@@ -42,6 +39,8 @@ public class ScheduledJob implements Lifecycle {
 
     private ReferenceConfig<JobProcessor> reference;
 
+    private volatile boolean isPaused; //job is not exist in schedule pool
+
     public ScheduledJob(me.stevenkin.boom.job.common.dto.JobDetail jobDetail, JobManager jobManager) {
         this.jobDetail = jobDetail;
         this.jobManager = jobManager;
@@ -49,6 +48,7 @@ public class ScheduledJob implements Lifecycle {
         this.schedulers = jobManager.getSchedulers();
         this.zkClient = jobManager.getZkClient();
         this.jobExecutor  = jobManager.getJobExecutor();
+        this.isPaused = true;
     }
 
     public Boolean schedule() {
@@ -59,7 +59,7 @@ public class ScheduledJob implements Lifecycle {
             scheduler = schedulers.getScheduler();
         } catch (SchedulerException e) {
             log.error("some error happen", e);
-            throw new RuntimeException(e);
+            throw new ScheduleException(e);
         }
 
         JobDataMap jobData = buildJobData(jobDetail, jobProcessor, jobExecutor);
@@ -69,49 +69,38 @@ public class ScheduledJob implements Lifecycle {
                 .usingJobData(jobData)
                 .build();
 
-
         Trigger trigger = buildTrigger(jobDetail);
 
         try {
             scheduler.scheduleJob(quartzJob, trigger);
         } catch (SchedulerException e) {
             log.error("some error happen", e);
-            return Boolean.FALSE;
+            throw new ScheduleException(e);
         }
+        isPaused = false;
         return Boolean.TRUE;
     }
 
     public Boolean trigger() {
+        if (isPaused)
+            return Boolean.FALSE;
         try {
             schedulers.getScheduler().triggerJob(buildJobKey(jobDetail.getJobKey()));
             return Boolean.TRUE;
         } catch (SchedulerException e) {
             log.error("some error happen", e);
+            throw new ScheduleException(e);
         }
-        return Boolean.FALSE;
     }
 
     public Boolean pause() {
-        try {
-            schedulers.getScheduler().pauseJob(buildJobKey(jobDetail.getJobKey()));
-            return Boolean.TRUE;
-        } catch (SchedulerException e) {
-            log.error("some error happen", e);
-        }
-        return Boolean.FALSE;
+        return delete();
+
     }
 
     public Boolean resume(me.stevenkin.boom.job.common.dto.JobDetail jobDetail) {
-        if (isDiff(jobDetail)) {
-            return reload(jobDetail);
-        }
-        try {
-            schedulers.getScheduler().resumeJob(buildJobKey(jobDetail.getJobKey()));
-            return Boolean.TRUE;
-        } catch (SchedulerException e) {
-            log.error("some error happen", e);
-        }
-        return Boolean.FALSE;
+        this.jobDetail = jobDetail;
+        return schedule();
     }
 
     public Boolean offline() {
@@ -119,21 +108,28 @@ public class ScheduledJob implements Lifecycle {
         return delete();
     }
 
-    public Boolean delete() {
+    protected Boolean delete() {
         try {
-            schedulers.getScheduler().deleteJob(buildJobKey(jobDetail.getJobKey()));
+            Scheduler scheduler = schedulers.getScheduler();
+            TriggerKey triggerKey = buildTriggerKey(jobDetail.getJobKey());
+            org.quartz.JobKey jobKey = buildJobKey(jobDetail.getJobKey());
+            scheduler.pauseTrigger(triggerKey);
+            scheduler.unscheduleJob(triggerKey);
+            scheduler.deleteJob(jobKey);
+            isPaused = true;
             return Boolean.TRUE;
         } catch (SchedulerException e) {
             log.error("some error happen", e);
+            throw new ScheduleException(e);
         }
-        return Boolean.FALSE;
     }
 
     public Boolean reload(me.stevenkin.boom.job.common.dto.JobDetail jobDetail) {
+        if (!delete()) {
+            return Boolean.FALSE;
+        }
         this.jobDetail = jobDetail;
-        if (!isDiff(jobDetail))
-            return Boolean.TRUE;
-        return delete() && schedule();
+        return schedule();
     }
 
     private org.quartz.JobKey buildJobKey(JobKey jobKey) {
