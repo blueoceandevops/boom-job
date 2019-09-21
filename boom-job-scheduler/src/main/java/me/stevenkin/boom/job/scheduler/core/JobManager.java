@@ -50,8 +50,6 @@ public class JobManager implements InitializingBean, DisposableBean {
     @Autowired
     private DubboConfigHolder dubboConfigHolder;
     @Autowired
-    private JobStatusMachine statusMachine;
-    @Autowired
     private JobExecutor jobExecutor;
 
     private SchedulerFactory schedulers;
@@ -82,7 +80,7 @@ public class JobManager implements InitializingBean, DisposableBean {
     public synchronized Boolean pauseJob(Long jobId){
         if (!jobCaches.containsKey(jobId))
             return Boolean.FALSE;
-        Integer n = jobScheduleDao.pauseJob(jobId);
+        Integer n = jobScheduleDao.pauseJob(jobId, schedulerContext.getSchedulerId());
         if (n < 1) {
             return Boolean.FALSE;
         }
@@ -93,7 +91,7 @@ public class JobManager implements InitializingBean, DisposableBean {
     public synchronized Boolean resumeJob(Long jobId){
         if (!jobCaches.containsKey(jobId))
             return Boolean.FALSE;
-        Integer n = jobScheduleDao.resumeJob(jobId);
+        Integer n = jobScheduleDao.resumeJob(jobId, schedulerContext.getSchedulerId());
         if (n < 1) {
             return Boolean.FALSE;
         }
@@ -104,7 +102,7 @@ public class JobManager implements InitializingBean, DisposableBean {
     public synchronized Boolean offlineJob(Long jobId){
         if (!jobCaches.containsKey(jobId))
             return Boolean.FALSE;
-        Integer n = jobScheduleDao.offlineJob(jobId);
+        Integer n = jobScheduleDao.offlineJob(jobId, schedulerContext.getSchedulerId());
         if (n < 1) {
             return Boolean.FALSE;
         }
