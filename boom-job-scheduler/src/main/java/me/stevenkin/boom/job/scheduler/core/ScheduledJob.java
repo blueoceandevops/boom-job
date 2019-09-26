@@ -9,7 +9,6 @@ import me.stevenkin.boom.job.common.kit.NameKit;
 import me.stevenkin.boom.job.common.po.Job;
 import me.stevenkin.boom.job.common.po.JobKey;
 import me.stevenkin.boom.job.common.service.JobProcessor;
-import me.stevenkin.boom.job.common.support.Lifecycle;
 import me.stevenkin.boom.job.common.zk.ZkClient;
 import me.stevenkin.boom.job.scheduler.dubbo.DubboConfigHolder;
 import org.quartz.*;
@@ -22,7 +21,7 @@ import static org.quartz.TriggerBuilder.newTrigger;
 @Data
 @NoArgsConstructor
 @Slf4j
-public class ScheduledJob implements Lifecycle {
+public class ScheduledJob {
     private JobManager jobManager;
 
     private me.stevenkin.boom.job.common.dto.JobDetail jobDetail;
@@ -109,7 +108,7 @@ public class ScheduledJob implements Lifecycle {
         return delete();
     }
 
-    protected Boolean delete() {
+    public Boolean delete() {
         try {
             Scheduler scheduler = schedulers.getScheduler();
             TriggerKey triggerKey = buildTriggerKey(jobDetail.getJobKey());
@@ -135,7 +134,7 @@ public class ScheduledJob implements Lifecycle {
 
     private org.quartz.JobKey buildJobKey(JobKey jobKey) {
         return org.quartz.JobKey.jobKey(jobKey.getJobClassName(),
-                NameKit.getAppId(jobKey.getAppName(), jobKey.getAuthor()));
+                NameKit.getAppKey(jobKey.getAppName(), jobKey.getAuthor()));
     }
 
     private JobDataMap buildJobData(me.stevenkin.boom.job.common.dto.JobDetail jobDetail, JobProcessor jobProcessor, JobExecutor jobExecutor) {
@@ -169,23 +168,10 @@ public class ScheduledJob implements Lifecycle {
 
     private TriggerKey buildTriggerKey(JobKey jobKey) {
         return TriggerKey.triggerKey(jobKey.getJobClassName(),
-                NameKit.getAppId(jobKey.getAppName(), jobKey.getAuthor()));
+                NameKit.getAppKey(jobKey.getAppName(), jobKey.getAuthor()));
     }
 
     private boolean isDiff(me.stevenkin.boom.job.common.dto.JobDetail jobDetail) {
         return !jobDetail.getJobConfig().getCron().equals(this.jobDetail.getJobConfig().getCron());
-    }
-
-    @Override
-    public void start() {
-        schedule();
-    }
-
-    @Override
-    public void shutdown() {
-        if (reference != null) {
-            reference.destroy();
-        }
-        jobManager.offlineJob(jobDetail.getJob().getId());
     }
 }

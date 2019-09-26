@@ -10,6 +10,9 @@ public interface JobScheduleDao {
     @Update("update job_info set scheduler_id = #{schedulerId}, status = 0, updateTime = now() where id = #{jobId} and status = 1")
     Integer onlineJob(@Param("jobId") Long jobId, @Param("schedulerId") String schedulerId);
 
+    @Update("update job_info set updateTime = now() where id = #{jobId} and status = 0 and scheduler_id = #{schedulerId}")
+    Integer triggerJob(@Param("jobId") Long jobId, @Param("schedulerId") String schedulerId);
+
     @Update("update job_info set scheduler_id = #{newSchedulerId}, updateTime = now() where id = #{jobId} and scheduler_id = #{schedulerId} and (status = 0 or status = 3)")
     Integer failoverJob(@Param("jobId") Long jobId, @Param("schedulerId") String schedulerId, @Param("newSchedulerId") String newSchedulerId);
 

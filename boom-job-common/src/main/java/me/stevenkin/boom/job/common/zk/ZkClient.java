@@ -8,6 +8,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import me.stevenkin.boom.job.common.exception.ZkException;
+import me.stevenkin.boom.job.common.support.Lifecycle;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.framework.recipes.cache.ChildData;
@@ -31,7 +32,7 @@ import java.util.concurrent.locks.ReentrantLock;
 @NoArgsConstructor
 @AllArgsConstructor
 @Slf4j
-public class ZkClient{
+public class ZkClient {
     private static final ExponentialBackoffRetry DEFAULT_RETRY_STRATEGY = new ExponentialBackoffRetry(1000, 3);
 
     private CuratorFramework client;
@@ -47,10 +48,9 @@ public class ZkClient{
     public ZkClient(String zkHosts, String namespace) {
         this.zkHosts = zkHosts;
         this.namespace = namespace;
-        start();
     }
 
-    private void start() {
+    public synchronized void start() throws Exception{
         if (started){
             return;
         }
@@ -104,7 +104,7 @@ public class ZkClient{
         }
     }
 
-    public synchronized void shutdown(){
+    public synchronized void shutdown() throws Exception {
         if (started && client != null){
             client.close();
             started = false;

@@ -27,9 +27,10 @@ public class BoomJobConfig {
     private ZkConfig zk;
     private QuartzConfig quartz;
 
-    @Bean
-    public ZkClient zkClient(){
+    @Bean(destroyMethod = "shutdown")
+    public ZkClient zkClient() throws Exception {
         ZkClient zkClient = new ZkClient(zk.getHosts(), zk.getNamespace());
+        zkClient.start();
         zkClient.mkdirs(CLIENT);
         zkClient.mkdirs(SCHEDULER);
         zkClient.mkdirs(JOB);

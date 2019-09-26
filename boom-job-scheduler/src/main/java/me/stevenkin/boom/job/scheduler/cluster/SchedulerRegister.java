@@ -1,6 +1,7 @@
 package me.stevenkin.boom.job.scheduler.cluster;
 
 import me.stevenkin.boom.job.common.kit.PathKit;
+import me.stevenkin.boom.job.common.support.Lifecycle;
 import me.stevenkin.boom.job.common.zk.ZkClient;
 import me.stevenkin.boom.job.scheduler.SchedulerContext;
 import org.springframework.beans.factory.DisposableBean;
@@ -13,17 +14,18 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 @Component
-public class SchedulerRegister implements InitializingBean, DisposableBean {
+public class SchedulerRegister extends Lifecycle {
     private static final String ZKPREFIX = "scheduler";
     @Autowired
     private ZkClient zkClient;
     @Autowired
     private SchedulerContext schedulerContext;
 
-    private ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+    private ScheduledExecutorService scheduler;
 
     @Override
-    public void afterPropertiesSet() throws Exception {
+    public void doStart() throws Exception {
+        scheduler = Executors.newScheduledThreadPool(1);
         scheduler.scheduleAtFixedRate(() -> {
             String schedulerNode = PathKit.format(ZKPREFIX, schedulerContext.getSchedulerId());
             if (!zkClient.checkExists(schedulerNode)) {
@@ -33,7 +35,17 @@ public class SchedulerRegister implements InitializingBean, DisposableBean {
     }
 
     @Override
-    public void destroy() throws Exception {
+    public void doPause() throws Exception {
+
+    }
+
+    @Override
+    public void doResume() throws Exception {
+
+    }
+
+    @Override
+    public void doShutdown() throws Exception {
         scheduler.shutdown();
         zkClient.shutdown();
     }

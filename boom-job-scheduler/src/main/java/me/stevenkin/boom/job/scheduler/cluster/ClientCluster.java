@@ -2,6 +2,7 @@ package me.stevenkin.boom.job.scheduler.cluster;
 
 import lombok.extern.slf4j.Slf4j;
 import me.stevenkin.boom.job.common.kit.PathKit;
+import me.stevenkin.boom.job.common.support.Lifecycle;
 import me.stevenkin.boom.job.common.zk.ZkClient;
 import org.apache.curator.framework.recipes.cache.PathChildrenCache;
 import org.springframework.beans.factory.DisposableBean;
@@ -16,7 +17,7 @@ import java.util.Map;
 
 @Component
 @Slf4j
-public class ClientCluster implements InitializingBean, DisposableBean{
+public class ClientCluster extends Lifecycle {
     private static final String CLIENT = "client";
 
     @Autowired
@@ -26,40 +27,58 @@ public class ClientCluster implements InitializingBean, DisposableBean{
 
     private Map<String, AppClientCluster> appClientClusterMap = new HashMap<>();
 
-    @Override
-    public void destroy() throws Exception {
-        if (cache != null) {
+    private synchronized void addAppClientCluster(String app) {
+        if (!appClientClusterMap.containsKey(app)) {
+            AppClientCluster appClientCluster = new AppClientCluster(zkClient, app);
             try {
-                cache.close();
-            } catch (IOException e) {
+                appClientCluster.start();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
             }
-        }
-        appClientClusterMap.values().forEach(AppClientCluster::shutdown);
-        if (zkClient != null) {
-            zkClient.shutdown();
+            appClientClusterMap.put(app, appClientCluster);
         }
     }
 
     @Override
-    public void afterPropertiesSet() throws Exception {
+    public void doStart() throws Exception {
         String path = PathKit.format(CLIENT);
         cache = zkClient.addNodeAddListener(path, (p, data) -> {
             String app = PathKit.lastNode(p);
             addAppClientCluster(app);
         });
         cache.start();
-        //注意顺序，先监听，后遍历
+        //listen first, then traversing
         List<String> apps = zkClient.gets(path);
         if (apps != null && !apps.isEmpty()) {
             apps.forEach(this::addAppClientCluster);
         }
     }
 
-    private synchronized void addAppClientCluster(String app) {
-        if (!appClientClusterMap.containsKey(app)) {
-            AppClientCluster appClientCluster = new AppClientCluster(zkClient, app);
-            appClientCluster.start();
-            appClientClusterMap.put(app, appClientCluster);
+    @Override
+    public void doPause() throws Exception {
+        if (cache != null) {
+            try {
+                cache.close();
+            } catch (IOException e) {
+            }
         }
+        appClientClusterMap.values().forEach(app -> {
+            try {
+                app.pause();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        });
+        appClientClusterMap.clear();
+    }
+
+    @Override
+    public void doResume() throws Exception {
+        doStart();
+    }
+
+    @Override
+    public void doShutdown() throws Exception {
+
     }
 }

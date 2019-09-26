@@ -7,7 +7,7 @@ public class NameKit {
         return Joiner.on("_").join(names);
     }
 
-    public static String getAppId(String appName, String author) {
+    public static String getAppKey(String appName, String author) {
         return genName(author, appName);
     }
 

@@ -5,14 +5,13 @@ import com.alibaba.dubbo.config.ProtocolConfig;
 import com.alibaba.dubbo.config.ReferenceConfig;
 import com.alibaba.dubbo.config.RegistryConfig;
 import com.alibaba.dubbo.config.utils.ReferenceConfigCache;
-import me.stevenkin.boom.job.common.service.JobExecuteService;
-import me.stevenkin.boom.job.common.service.JobProcessor;
-import me.stevenkin.boom.job.common.service.RegisterService;
+import me.stevenkin.boom.job.common.service.*;
 import me.stevenkin.boom.job.common.kit.ExecutorKit;
 import me.stevenkin.boom.job.common.kit.NameKit;
 import me.stevenkin.boom.job.common.kit.SystemKit;
 import me.stevenkin.boom.job.common.support.Lifecycle;
-import me.stevenkin.boom.job.common.service.ShardExecuteService;
+import me.stevenkin.boom.job.common.zk.CommandProcessor;
+import me.stevenkin.boom.job.common.zk.ZkClient;
 
 import java.util.concurrent.ExecutorService;
 
@@ -21,7 +20,8 @@ import java.util.concurrent.ExecutorService;
  * 2. register jobs
  * 3. start
  */
-public class SimpleBoomJobClient implements BoomJobClient, Lifecycle{
+public class SimpleBoomJobClient extends Lifecycle implements BoomJobClient {
+    private static final String CMD_CLIENT = "command/client";
 
     private String appName;
 
@@ -33,13 +33,19 @@ public class SimpleBoomJobClient implements BoomJobClient, Lifecycle{
 
     private String namespace;
 
-    private String clientId = SystemKit.hostPid();
+    private ZkClient zkClient;
+
+    private String clientId;
 
     private Integer executeThreadCount;
 
+    private Integer timeout;
+
     private JobPool jobPool;
 
-    private ClientRegister clientRegister;
+    private SimpleClientProcessor clientProcessor;
+
+    private CommandProcessor commandProcessor;
 
     private ExecutorService executor;
 
@@ -53,25 +59,27 @@ public class SimpleBoomJobClient implements BoomJobClient, Lifecycle{
 
     private JobExecuteService jobExecuteService;
 
-    private ShardExecuteService shardExecuteService;
-
     private ReferenceConfig<RegisterService> referRegister;
 
     private ReferenceConfig<JobExecuteService> referJob;
 
-    private ReferenceConfig<ShardExecuteService> referShard;
-
     private ReferenceConfigCache cache = ReferenceConfigCache.getCache();
 
-    public SimpleBoomJobClient(String appName, String author, String appSecret, String zkHosts, String zkUsername, String zkPassword, String namespace, Integer timeout, Integer executeThreadCount) {
+    public SimpleBoomJobClient(String appName, String author, String appSecret, String zkHosts, String zkUsername, String zkPassword, String namespace, Integer timeout, Integer executeThreadCount) throws Exception {
         this.appName = appName;
         this.author = author;
         this.appSecret = appSecret;
+
         this.zkHosts = zkHosts;
         this.namespace = namespace;
+        this.zkClient = new ZkClient(zkHosts, namespace);
+
         this.executeThreadCount = executeThreadCount;
         this.executor = ExecutorKit.newExecutor(executeThreadCount, 10000, "service-executor-");
-        this.application.setName(NameKit.getAppId(appName, author));
+
+        this.timeout = timeout;
+
+        this.application.setName(NameKit.getAppKey(appName, author));
         this.registry.setAddress(zkHosts);
         this.registry.setProtocol("zookeeper");
         this.registry.setUsername(zkUsername);
@@ -79,37 +87,6 @@ public class SimpleBoomJobClient implements BoomJobClient, Lifecycle{
         this.protocol.setName("dubbo");
         this.protocol.setPort(-1);
         this.protocol.setThreads(200);
-
-        this.referRegister = new ReferenceConfig<>();
-        this.referJob = new ReferenceConfig<>();
-        this.referShard = new ReferenceConfig<>();
-
-        this.referRegister.setTimeout(timeout);
-        this.referJob.setTimeout(timeout);
-        this.referShard.setTimeout(timeout);
-
-        this.referRegister.setRetries(0);
-        this.referJob.setRetries(0);
-        this.referShard.setRetries(0);
-
-        this.referRegister.setApplication(application);
-        this.referRegister.setRegistry(registry);
-        this.referRegister.setInterface(RegisterService.class);
-
-        this.referJob.setApplication(application);
-        this.referJob.setRegistry(registry);
-        this.referJob.setInterface(JobExecuteService.class);
-
-        this.referShard.setApplication(application);
-        this.referShard.setRegistry(registry);
-        this.referShard.setInterface(ShardExecuteService.class);
-
-        this.registerService = cache.get(referRegister);
-        this.jobExecuteService = cache.get(referJob);
-        this.shardExecuteService = cache.get(referShard);
-
-        this.jobPool = new JobPool(this);
-        this.clientRegister = new ClientRegister(this);
     }
 
     @Override
@@ -120,6 +97,11 @@ public class SimpleBoomJobClient implements BoomJobClient, Lifecycle{
     @Override
     public String author() {
         return author;
+    }
+
+    @Override
+    public String appKey() {
+        return author + "_" + appName;
     }
 
     @Override
@@ -140,6 +122,11 @@ public class SimpleBoomJobClient implements BoomJobClient, Lifecycle{
     @Override
     public String namespace() {
         return namespace;
+    }
+
+    @Override
+    public ZkClient zkClient() {
+        return zkClient;
     }
 
     @Override
@@ -173,8 +160,8 @@ public class SimpleBoomJobClient implements BoomJobClient, Lifecycle{
     }
 
     @Override
-    public ShardExecuteService shardExecuteService() {
-        return shardExecuteService;
+    public JobPool jobPool() {
+        return jobPool;
     }
 
     @Override
@@ -183,28 +170,67 @@ public class SimpleBoomJobClient implements BoomJobClient, Lifecycle{
     }
 
     @Override
-    public JobProcessor getJobProcessor(Class<? extends Job> jobClass) {
-        return jobPool.getJobProcessor(jobClass);
-    }
-
-    @Override
     public void registerJob(Job job) {
         jobPool.registerJob(job);
     }
 
     @Override
-    public void start() {
-        clientRegister.start();
+    public void doStart() throws Exception {
+        zkClient.start();
+        referService();
+        jobPool = new JobPool(this);
         jobPool.start();
-        Runtime.getRuntime().addShutdownHook(new Thread(this::shutdown, "BoomShutdownHook"));
+        clientProcessor = new SimpleClientProcessor(this);
+        clientProcessor.start();
+        commandProcessor = new CommandProcessor(zkClient, CMD_CLIENT, clientProcessor.getClientId());
+        commandProcessor.start();
+
+    }
+
+    private void referService() {
+        this.referRegister = new ReferenceConfig<>();
+        this.referJob = new ReferenceConfig<>();
+
+        this.referRegister.setTimeout(this.timeout);
+        this.referJob.setTimeout(this.timeout);
+
+        this.referRegister.setRetries(0);
+        this.referJob.setRetries(0);
+
+        this.referRegister.setApplication(application);
+        this.referRegister.setRegistry(registry);
+        this.referRegister.setInterface(RegisterService.class);
+
+        this.referJob.setApplication(application);
+        this.referJob.setRegistry(registry);
+        this.referJob.setInterface(JobExecuteService.class);
+
+        this.registerService = cache.get(referRegister);
+        this.jobExecuteService = cache.get(referJob);
     }
 
     @Override
-    public void shutdown() {
-        clientRegister.shutdown();
+    public void doPause() throws Exception {
+        jobPool.pause();
+        clientProcessor.pause();
+        commandProcessor.pause();
+    }
+
+    @Override
+    public void doResume() throws Exception {
+        jobPool.resume();
+        clientProcessor.resume();
+        commandProcessor.resume();
+    }
+
+    @Override
+    public void doShutdown() throws Exception {
+        clientProcessor.shutdown();
+        executor.shutdownNow();
         jobPool.shutdown();
+        commandProcessor.shutdown();
         cache.destroy(referRegister);
         cache.destroy(referJob);
-        cache.destroy(referShard);
+        zkClient.shutdown();
     }
 }

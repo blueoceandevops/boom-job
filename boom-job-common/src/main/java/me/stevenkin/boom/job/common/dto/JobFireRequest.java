@@ -13,6 +13,7 @@ import java.util.List;
 public class JobFireRequest implements Serializable{
     private static final long serialVersionUID = -4153657694380103021L;
     private String jobKey;
+    private String jobClass;
     private Long jobInstanceId;
     private List<Long> jobShardIds;
     private String schedulerId;

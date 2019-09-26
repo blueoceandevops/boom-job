@@ -19,55 +19,32 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
-public class JobPool implements Lifecycle {
+public class JobPool extends Lifecycle {
 
     private BoomJobClient jobClient;
 
-    private Map<String, JobProcessor> jobProcessorCache = new ConcurrentHashMap<>();
-
     private Set<String> jobs = new ConcurrentHashSet<>();
 
-    private ApplicationConfig application;
-
-    private RegistryConfig registry;
-
-    private Map<Class<? extends Job>, ServiceConfig<JobProcessor>> serviceCache = new ConcurrentHashMap<>();
+    private Map<String, Job> jobCache = new ConcurrentHashMap<>();
 
     private RegisterService registerService;
 
     public JobPool(BoomJobClient jobClient) {
         this.jobClient = jobClient;
-        this.application = jobClient.applicationConfig();
-        this.registry = jobClient.registerConfig();
         this.registerService = jobClient.registerService();
     }
 
-    public JobProcessor getJobProcessor(Class<? extends Job> jobClass) {
-        String jobId = getJobId(jobClass);
-        return jobProcessorCache.get(jobId);
+    public Job getJob(String jobClass) {
+        return jobCache.get(jobClass);
     }
 
     public void registerJob(Job job) {
-        String jobId = getJobId(job.getClass());
-        JobProcessor jobProcessor = new SimpleJobProcessor(job, jobId, jobClient);
-        jobProcessorCache.put(jobId, jobProcessor);
+        jobCache.putIfAbsent(job.getClass().getCanonicalName(), job);
         jobs.add(job.getClass().getCanonicalName());
-        if (serviceCache.get(job.getClass()) != null)
-            return;
-        ServiceConfig<JobProcessor> service = new ServiceConfig<>();
-        service.setApplication(application);
-        service.setRegistry(registry);
-        service.setProtocol(jobClient.protocolConfig());
-        service.setInterface(JobProcessor.class);
-        service.setGroup(jobId);
-        service.setRef(jobProcessor);
-
-        service.export();
-        serviceCache.put(job.getClass(), service);
     }
 
     @Override
-    public void start() {
+    public void doStart() throws Exception {
         AppInfo appInfo = new AppInfo();
         appInfo.setAuthor(jobClient.author());
         appInfo.setAppName(jobClient.appName());
@@ -76,13 +53,18 @@ public class JobPool implements Lifecycle {
     }
 
     @Override
-    public void shutdown() {
-        serviceCache.values().forEach(ServiceConfig::unexport);
-        serviceCache.clear();
-        jobProcessorCache.clear();
+    public void doPause() throws Exception {
+
     }
 
-    private String getJobId(Class<? extends Job> jobClass){
-        return NameKit.getJobId(jobClient.appName(), jobClient.author(), jobClass.getCanonicalName());
+    @Override
+    public void doResume() throws Exception {
+
+    }
+
+    @Override
+    public void doShutdown() throws Exception {
+        jobs.clear();
+        jobCache.clear();
     }
 }

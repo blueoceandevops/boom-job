@@ -33,10 +33,18 @@ public class JobExecutor {
     private JobInstanceShardDao jobInstanceShardDao;
     @Autowired
     private SchedulerContext schedulerContext;
+    @Autowired
+    private JobScheduleDao jobScheduleDao;
 
     @Transactional(rollbackFor = Exception.class)
     public void execute(JobDetail jobDetail, JobProcessor jobProcessor, JobExecutionContext context) {
+        Integer n;
         Long jobId = jobDetail.getJob().getId();
+        //when a job is scheduled by multiple servers, ensure only one can trigger success
+        n = jobScheduleDao.triggerJob(jobId, schedulerContext.getSchedulerId());
+        if (n != 1) {
+            throw new RuntimeException("job" + jobId + " trigger failed");
+        }
         boolean allowConcurrent = jobDetail.getJobConfig().isAllowConcurrent();
         JobInstance jobInstance = new JobInstance();
         jobInstance.setJobId(jobId);
@@ -47,7 +55,6 @@ public class JobExecutor {
         jobInstance.setExpectedEndTime(jobInstance.getStartTime().plusSeconds(jobDetail.getJobConfig().getTimeout()));
         jobInstance.setCreateTime(jobInstance.getStartTime());
         jobInstance.setUpdateTime(jobInstance.getStartTime());
-        Integer n;
         if (allowConcurrent) {
             n = jobInstanceDao.insertJobInstance(jobInstance);
         }else {

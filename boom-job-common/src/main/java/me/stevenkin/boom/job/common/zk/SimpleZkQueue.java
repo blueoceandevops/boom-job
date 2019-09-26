@@ -75,14 +75,12 @@ public class SimpleZkQueue implements ZkQueue{
         try {
             lock.lock();
             while (queue.isEmpty()) {
-                try {
-                    condition.await();
-                } catch (InterruptedException e) {
-                    log.error("take zk element happen error", e);
-                }
+                condition.await();
             }
             return queue.remove(0);
-        } finally {
+        }catch (Exception e) {
+            throw new RuntimeException(e);
+        }finally {
             lock.unlock();
         }
     }

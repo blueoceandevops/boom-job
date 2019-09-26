@@ -8,14 +8,17 @@ import me.stevenkin.boom.job.common.service.JobProcessor;
 import me.stevenkin.boom.job.common.service.RegisterService;
 import me.stevenkin.boom.job.common.support.Lifecycle;
 import me.stevenkin.boom.job.common.service.ShardExecuteService;
+import me.stevenkin.boom.job.common.zk.ZkClient;
 
 import java.util.concurrent.ExecutorService;
 
-public interface BoomJobClient extends Lifecycle {
+public interface BoomJobClient {
 
     String appName();
 
     String author();
+
+    String appKey();
 
     String appSecret();
 
@@ -24,6 +27,8 @@ public interface BoomJobClient extends Lifecycle {
     String zkHosts();
 
     String namespace();
+
+    ZkClient zkClient();
 
     Integer executeThreadCount();
 
@@ -37,11 +42,9 @@ public interface BoomJobClient extends Lifecycle {
 
     JobExecuteService jobExecuteService();
 
-    ShardExecuteService shardExecuteService();
+    JobPool jobPool();
 
     ExecutorService executor();
-
-    JobProcessor getJobProcessor(Class<? extends Job> jobClass);
 
     void registerJob(Job job);
 }

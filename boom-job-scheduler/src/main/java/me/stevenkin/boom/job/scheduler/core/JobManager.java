@@ -8,7 +8,9 @@ import me.stevenkin.boom.job.common.po.App;
 import me.stevenkin.boom.job.common.po.Job;
 import me.stevenkin.boom.job.common.po.JobConfig;
 import me.stevenkin.boom.job.common.po.JobKey;
+import me.stevenkin.boom.job.common.support.Lifecycle;
 import me.stevenkin.boom.job.common.zk.ZkClient;
+import me.stevenkin.boom.job.scheduler.service.FailoverService;
 import me.stevenkin.boom.job.storage.dao.AppInfoDao;
 import me.stevenkin.boom.job.storage.dao.JobConfigDao;
 import me.stevenkin.boom.job.storage.dao.JobInfoDao;
@@ -16,11 +18,8 @@ import me.stevenkin.boom.job.storage.dao.JobScheduleDao;
 import me.stevenkin.boom.job.scheduler.SchedulerContext;
 import me.stevenkin.boom.job.scheduler.config.BoomJobConfig;
 import me.stevenkin.boom.job.scheduler.dubbo.DubboConfigHolder;
-import org.quartz.SchedulerException;
 import org.quartz.SchedulerFactory;
 import org.quartz.impl.StdSchedulerFactory;
-import org.springframework.beans.factory.DisposableBean;
-import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,7 +31,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @Component
 @Data
-public class JobManager implements InitializingBean, DisposableBean {
+public class JobManager extends Lifecycle {
     @Autowired
     private AppInfoDao appInfoDao;
     @Autowired
@@ -51,6 +50,8 @@ public class JobManager implements InitializingBean, DisposableBean {
     private DubboConfigHolder dubboConfigHolder;
     @Autowired
     private JobExecutor jobExecutor;
+    @Autowired
+    private FailoverService failoverService;
 
     private SchedulerFactory schedulers;
 
@@ -58,13 +59,16 @@ public class JobManager implements InitializingBean, DisposableBean {
 
     @Transactional(rollbackFor = Exception.class)
     public synchronized Boolean onlineJob(Long jobId){
+        if (jobCaches.containsKey(jobId)) {
+            return Boolean.TRUE;
+        }
         Integer n = jobScheduleDao.onlineJob(jobId, schedulerContext.getSchedulerId());
         if (n < 1) {
             return Boolean.FALSE;
         }
 
         ScheduledJob scheduledJob = new ScheduledJob(jobDetail(jobId), this);
-        scheduledJob.start();
+        scheduledJob.schedule();
         jobCaches.put(jobId, scheduledJob);
 
         return Boolean.TRUE;
@@ -132,7 +136,7 @@ public class JobManager implements InitializingBean, DisposableBean {
         switch (jobStatus) {
             case ONLINE:
                 scheduledJob = new ScheduledJob(jobDetail(jobId), this);
-                scheduledJob.start();
+                scheduledJob.schedule();
                 jobCaches.put(jobId, scheduledJob);
                 break;
             case PAUSED:
@@ -158,23 +162,29 @@ public class JobManager implements InitializingBean, DisposableBean {
     }
 
     @Override
-    public void afterPropertiesSet() throws Exception {
-        try {
-            Properties properties = new Properties();
-            properties.setProperty("org.quartz.threadPool.threadCount", Integer.toString(config.getQuartz().getScheduleThreadCount()));
-            properties.setProperty("org.quartz.threadPool.class", config.getQuartz().getScheduleThreadPoolClass());
-            schedulers = new StdSchedulerFactory(properties);
-            schedulers.getScheduler().start();
-        } catch (SchedulerException e) {
-            throw new RuntimeException(e);
-        }
+    public void doStart() throws Exception {
+        Properties properties = new Properties();
+        properties.setProperty("org.quartz.threadPool.threadCount", Integer.toString(config.getQuartz().getScheduleThreadCount()));
+        properties.setProperty("org.quartz.threadPool.class", config.getQuartz().getScheduleThreadPoolClass());
+        schedulers = new StdSchedulerFactory(properties);
+        schedulers.getScheduler().start();
     }
 
     @Override
-    public void destroy() throws Exception {
-        jobCaches.values().forEach(ScheduledJob::shutdown);
+    public void doPause() throws Exception {
+        jobCaches.values().forEach(ScheduledJob::delete);
         jobCaches.clear();
         schedulers.getScheduler().shutdown();
-        zkClient.shutdown();
+        failoverService.processSchedulerFailed(schedulerContext.getSchedulerId());
+    }
+
+    @Override
+    public void doResume() throws Exception {
+        doStart();
+    }
+
+    @Override
+    public void doShutdown() throws Exception {
+
     }
 }

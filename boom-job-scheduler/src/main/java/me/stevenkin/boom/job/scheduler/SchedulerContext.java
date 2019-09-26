@@ -2,6 +2,8 @@ package me.stevenkin.boom.job.scheduler;
 
 import me.stevenkin.boom.job.common.kit.NetworkKit;
 import me.stevenkin.boom.job.common.kit.SystemKit;
+import org.springframework.beans.factory.DisposableBean;
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -29,5 +31,4 @@ public class SchedulerContext {
     public String getSchedulerId() {
         return address + ":" + pid + timestamp;
     }
-
 }

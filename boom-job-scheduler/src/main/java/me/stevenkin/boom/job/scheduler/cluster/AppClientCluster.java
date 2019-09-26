@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.Set;
 
 @Slf4j
-public class AppClientCluster implements Lifecycle{
+public class AppClientCluster extends Lifecycle {
     private static final String CLIENT = "client";
     private static final String CLIENT_FAILOVER = "failover/client";
 
@@ -32,10 +32,10 @@ public class AppClientCluster implements Lifecycle{
     }
 
     @Override
-    public void start() {
+    public void doStart() throws Exception {
         String path = PathKit.format(CLIENT, app);
         addCache = zkClient.addNodeAddListener(path, (p, data) ->
-            addClient(PathKit.lastNode(p))
+                addClient(PathKit.lastNode(p))
         );
         delCache = zkClient.addNodeDeleteListener(path, p -> {
             String node = PathKit.lastNode(p);
@@ -48,7 +48,7 @@ public class AppClientCluster implements Lifecycle{
         }catch (Exception e) {
             throw new RuntimeException(e);
         }
-        //注意顺序，先监听，后遍历
+        //listen first, then traversing
         List<String> clientIds = zkClient.gets(path);
         if (clientIds != null && !clientIds.isEmpty()) {
             clientIds.forEach(this::addClient);
@@ -56,13 +56,20 @@ public class AppClientCluster implements Lifecycle{
     }
 
     @Override
-    public void shutdown() {
-        try{
-            addCache.close();
-            delCache.close();
-        }catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+    public void doPause() throws Exception {
+        addCache.close();
+        delCache.close();
+        alives.clear();
+    }
+
+    @Override
+    public void doResume() throws Exception {
+        doStart();
+    }
+
+    @Override
+    public void doShutdown() throws Exception {
+
     }
 
     public Set<String> getAlives() {

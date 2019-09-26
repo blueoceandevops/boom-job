@@ -3,6 +3,7 @@ package me.stevenkin.boom.job.scheduler.cluster;
 import com.google.common.collect.Sets;
 import lombok.extern.slf4j.Slf4j;
 import me.stevenkin.boom.job.common.kit.PathKit;
+import me.stevenkin.boom.job.common.support.Lifecycle;
 import me.stevenkin.boom.job.common.zk.ZkClient;
 import org.apache.curator.framework.recipes.cache.PathChildrenCache;
 import org.springframework.beans.factory.DisposableBean;
@@ -17,7 +18,7 @@ import java.util.Set;
 
 @Component
 @Slf4j
-public class SchedulerCluster implements InitializingBean, DisposableBean {
+public class SchedulerCluster extends Lifecycle {
 
     private static final String SCHEDULER = "scheduler";
     private static final String SCHEDULER_FAILOVER = "failover/scheduler";
@@ -31,37 +32,6 @@ public class SchedulerCluster implements InitializingBean, DisposableBean {
 
     private Set<String> alives = new HashSet<>();
 
-    @Override
-    public void destroy() throws Exception {
-        try {
-            addCache.close();
-            delCache.close();
-        } catch (IOException e) {
-        }
-        if (zkClient != null) {
-            zkClient.shutdown();
-        }
-    }
-
-    @Override
-    public void afterPropertiesSet() throws Exception {
-        String path = PathKit.format(SCHEDULER);
-        addCache = zkClient.addNodeAddListener(path, (p, data) ->
-            addScheduler(PathKit.lastNode(p))
-        );
-        delCache = zkClient.addNodeDeleteListener(path, p -> {
-            deleteScheduler(PathKit.lastNode(p));
-            zkClient.create(PathKit.format(SCHEDULER_FAILOVER, PathKit.lastNode(p)));
-        });
-        addCache.start();
-        delCache.start();
-        //注意顺序，先监听，后遍历
-        List<String> schedulers = zkClient.gets(path);
-        if (schedulers != null && !schedulers.isEmpty()) {
-            schedulers.forEach(this::addScheduler);
-        }
-    }
-
     public Set<String> getAlives() {
         return Sets.newHashSet(alives);
     }
@@ -74,5 +44,41 @@ public class SchedulerCluster implements InitializingBean, DisposableBean {
 
     private synchronized void deleteScheduler(String scheduler) {
         alives.remove(scheduler);
+    }
+
+    @Override
+    public void doStart() throws Exception {
+        String path = PathKit.format(SCHEDULER);
+        addCache = zkClient.addNodeAddListener(path, (p, data) ->
+                addScheduler(PathKit.lastNode(p))
+        );
+        delCache = zkClient.addNodeDeleteListener(path, p -> {
+            deleteScheduler(PathKit.lastNode(p));
+            zkClient.create(PathKit.format(SCHEDULER_FAILOVER, PathKit.lastNode(p)));
+        });
+        addCache.start();
+        delCache.start();
+        //listen first, then traversing
+        List<String> schedulers = zkClient.gets(path);
+        if (schedulers != null && !schedulers.isEmpty()) {
+            schedulers.forEach(this::addScheduler);
+        }
+    }
+
+    @Override
+    public void doPause() throws Exception {
+        addCache.close();
+        delCache.close();
+        alives.clear();
+    }
+
+    @Override
+    public void doResume() throws Exception {
+        doStart();
+    }
+
+    @Override
+    public void doShutdown() throws Exception {
+
     }
 }
