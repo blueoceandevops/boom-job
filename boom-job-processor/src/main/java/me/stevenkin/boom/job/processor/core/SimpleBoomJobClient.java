@@ -182,7 +182,7 @@ public class SimpleBoomJobClient extends Lifecycle implements BoomJobClient {
         jobPool.start();
         clientProcessor = new SimpleClientProcessor(this);
         clientProcessor.start();
-        commandProcessor = new CommandProcessor(zkClient, CMD_CLIENT, clientProcessor.getClientId());
+        commandProcessor = new CommandProcessor(this, zkClient, CMD_CLIENT, clientProcessor.getClientId());
         commandProcessor.start();
 
     }

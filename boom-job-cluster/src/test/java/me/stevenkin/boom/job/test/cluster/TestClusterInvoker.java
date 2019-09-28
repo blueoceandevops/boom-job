@@ -26,6 +26,7 @@ public class TestClusterInvoker<T> extends FailfastClusterInvoker<T> {
             List<Throwable> throwables = new ArrayList<>();
             for (Invoker<T> invoker : invokers) {
                 try {
+                    log.info("invoker >>>" + invoker.getUrl().toFullString());
                     results.add(invoker.invoke(invocation));
                 }catch (Throwable e) {
                     throwables.add(e);

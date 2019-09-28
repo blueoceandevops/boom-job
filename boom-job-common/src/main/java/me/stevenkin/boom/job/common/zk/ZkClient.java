@@ -11,10 +11,7 @@ import me.stevenkin.boom.job.common.exception.ZkException;
 import me.stevenkin.boom.job.common.support.Lifecycle;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
-import org.apache.curator.framework.recipes.cache.ChildData;
-import org.apache.curator.framework.recipes.cache.PathChildrenCache;
-import org.apache.curator.framework.recipes.cache.PathChildrenCacheEvent;
-import org.apache.curator.framework.recipes.cache.PathChildrenCacheListener;
+import org.apache.curator.framework.recipes.cache.*;
 import org.apache.curator.retry.ExponentialBackoffRetry;
 import org.apache.curator.utils.EnsurePath;
 import org.apache.zookeeper.CreateMode;
@@ -625,6 +622,23 @@ public class ZkClient {
             }
         });
         return cache;
+    }
+
+    public NodeCache registerNodeCacheListener(String nodePath, NodeListener listener) {
+        try {
+            NodeCache nodeCache = new NodeCache(client, nodePath);
+            nodeCache.getListenable().addListener(() -> {
+                ChildData childData = nodeCache.getCurrentData();
+                if(childData != null){
+                    listener.onChange(childData.getPath(), childData.getStat(), childData.getData());
+                } else {
+                    listener.onDelete();
+                }
+            });
+            return nodeCache;
+        } catch (Exception e) {
+            throw new ZkException(e);
+        }
     }
 
     private String slash(String path){
