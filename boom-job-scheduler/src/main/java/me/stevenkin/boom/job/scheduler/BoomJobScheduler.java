@@ -7,6 +7,7 @@ import me.stevenkin.boom.job.common.zk.ZkClient;
 import me.stevenkin.boom.job.scheduler.cluster.ClientCluster;
 import me.stevenkin.boom.job.scheduler.cluster.LeaderSelector;
 import me.stevenkin.boom.job.scheduler.cluster.SchedulerCluster;
+import me.stevenkin.boom.job.scheduler.core.JobExecutor;
 import me.stevenkin.boom.job.scheduler.core.JobManager;
 import me.stevenkin.boom.job.scheduler.dubbo.DubboProviderScanner;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,6 +26,8 @@ public class BoomJobScheduler extends Lifecycle {
     private LeaderSelector leaderSelector;
     @Autowired
     private JobManager jobManager;
+    @Autowired
+    private JobExecutor jobExecutor;
     @Autowired
     private DubboProviderScanner dubboProviderScanner;
     @Autowired
@@ -48,7 +51,12 @@ public class BoomJobScheduler extends Lifecycle {
         leaderSelector.setSchedulerId(schedulerId);
         leaderSelector.start();
         //start job manager
+        jobManager.setSchedulerId(schedulerId);
         jobManager.start();
+        jobManager.getLatch().countDown();
+        //start job excutor
+        jobExecutor.setSchedulerId(schedulerId);
+        jobExecutor.getLatch().countDown();
         // start command processor
         initCommandProcessor();
     }

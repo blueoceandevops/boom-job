@@ -2,6 +2,8 @@ package me.stevenkin.boom.job.scheduler.core;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import me.stevenkin.boom.job.common.dto.JobDetail;
 import me.stevenkin.boom.job.common.dto.JobFireRequest;
@@ -14,7 +16,6 @@ import me.stevenkin.boom.job.common.service.JobProcessor;
 import me.stevenkin.boom.job.storage.dao.JobInstanceDao;
 import me.stevenkin.boom.job.storage.dao.JobInstanceShardDao;
 import me.stevenkin.boom.job.storage.dao.JobScheduleDao;
-import me.stevenkin.boom.job.scheduler.SchedulerContext;
 import org.quartz.JobExecutionContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -23,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
 
 @Component
 @Slf4j
@@ -32,16 +34,23 @@ public class JobExecutor {
     @Autowired
     private JobInstanceShardDao jobInstanceShardDao;
     @Autowired
-    private SchedulerContext schedulerContext;
-    @Autowired
     private JobScheduleDao jobScheduleDao;
+    @Setter
+    private String schedulerId;
+    @Getter
+    private CountDownLatch latch = new CountDownLatch(1);
 
     @Transactional(rollbackFor = Exception.class)
     public void execute(JobDetail jobDetail, JobProcessor jobProcessor, JobExecutionContext context) {
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+            log.error("happen error", e);
+        }
         Integer n;
         Long jobId = jobDetail.getJob().getId();
         //when a job is scheduled by multiple servers, ensure only one can trigger success
-        n = jobScheduleDao.triggerJob(jobId, schedulerContext.getSchedulerId());
+        n = jobScheduleDao.triggerJob(jobId, schedulerId);
         if (n != 1) {
             throw new RuntimeException("job" + jobId + " trigger failed");
         }
@@ -84,7 +93,7 @@ public class JobExecutor {
         request.setJobKey(NameKit.getJobId(jobDetail.getJobKey().getAppName(), jobDetail.getJobKey().getAuthor(), jobDetail.getJobKey().getJobClassName()));
         request.setJobInstanceId(jobInstance.getId());
         request.setJobShardIds(jobShardIds);
-        request.setSchedulerId(schedulerContext.getSchedulerId());
+        request.setSchedulerId(schedulerId);
         jobProcessor.fireJob(request);
     }
 

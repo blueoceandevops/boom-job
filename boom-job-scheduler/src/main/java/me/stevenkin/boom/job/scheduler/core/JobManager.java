@@ -1,6 +1,9 @@
 package me.stevenkin.boom.job.scheduler.core;
 
 import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 import me.stevenkin.boom.job.common.dto.JobDetail;
 import me.stevenkin.boom.job.common.enums.JobStatus;
 import me.stevenkin.boom.job.common.exception.ScheduleException;
@@ -15,7 +18,6 @@ import me.stevenkin.boom.job.storage.dao.AppInfoDao;
 import me.stevenkin.boom.job.storage.dao.JobConfigDao;
 import me.stevenkin.boom.job.storage.dao.JobInfoDao;
 import me.stevenkin.boom.job.storage.dao.JobScheduleDao;
-import me.stevenkin.boom.job.scheduler.SchedulerContext;
 import me.stevenkin.boom.job.scheduler.config.BoomJobConfig;
 import me.stevenkin.boom.job.scheduler.dubbo.DubboConfigHolder;
 import org.quartz.SchedulerFactory;
@@ -28,9 +30,11 @@ import org.springframework.util.Assert;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
 
 @Component
 @Data
+@Slf4j
 public class JobManager extends Lifecycle {
     @Autowired
     private AppInfoDao appInfoDao;
@@ -41,8 +45,6 @@ public class JobManager extends Lifecycle {
     @Autowired
     private JobScheduleDao jobScheduleDao;
     @Autowired
-    private SchedulerContext schedulerContext;
-    @Autowired
     private ZkClient zkClient;
     @Autowired
     private BoomJobConfig config;
@@ -52,6 +54,10 @@ public class JobManager extends Lifecycle {
     private JobExecutor jobExecutor;
     @Autowired
     private FailoverService failoverService;
+    @Setter
+    private String schedulerId;
+    @Getter
+    private CountDownLatch latch = new CountDownLatch(1);
 
     private SchedulerFactory schedulers;
 
@@ -59,10 +65,15 @@ public class JobManager extends Lifecycle {
 
     @Transactional(rollbackFor = Exception.class)
     public synchronized Boolean onlineJob(Long jobId){
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+            log.error("happen error", e);
+        }
         if (jobCaches.containsKey(jobId)) {
             return Boolean.TRUE;
         }
-        Integer n = jobScheduleDao.onlineJob(jobId, schedulerContext.getSchedulerId());
+        Integer n = jobScheduleDao.onlineJob(jobId, schedulerId);
         if (n < 1) {
             return Boolean.FALSE;
         }
@@ -75,6 +86,11 @@ public class JobManager extends Lifecycle {
     }
 
     public synchronized Boolean triggerJob(Long jobId){
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+            log.error("happen error", e);
+        }
         if (!jobCaches.containsKey(jobId))
             return Boolean.FALSE;
         return jobCaches.get(jobId).trigger();
@@ -82,9 +98,14 @@ public class JobManager extends Lifecycle {
 
     @Transactional(rollbackFor = Exception.class)
     public synchronized Boolean pauseJob(Long jobId){
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+            log.error("happen error", e);
+        }
         if (!jobCaches.containsKey(jobId))
             return Boolean.FALSE;
-        Integer n = jobScheduleDao.pauseJob(jobId, schedulerContext.getSchedulerId());
+        Integer n = jobScheduleDao.pauseJob(jobId, schedulerId);
         if (n < 1) {
             return Boolean.FALSE;
         }
@@ -93,9 +114,14 @@ public class JobManager extends Lifecycle {
 
     @Transactional(rollbackFor = Exception.class)
     public synchronized Boolean resumeJob(Long jobId){
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+            log.error("happen error", e);
+        }
         if (!jobCaches.containsKey(jobId))
             return Boolean.FALSE;
-        Integer n = jobScheduleDao.resumeJob(jobId, schedulerContext.getSchedulerId());
+        Integer n = jobScheduleDao.resumeJob(jobId, schedulerId);
         if (n < 1) {
             return Boolean.FALSE;
         }
@@ -104,9 +130,14 @@ public class JobManager extends Lifecycle {
 
     @Transactional(rollbackFor = Exception.class)
     public synchronized Boolean offlineJob(Long jobId){
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+            log.error("happen error", e);
+        }
         if (!jobCaches.containsKey(jobId))
             return Boolean.FALSE;
-        Integer n = jobScheduleDao.offlineJob(jobId, schedulerContext.getSchedulerId());
+        Integer n = jobScheduleDao.offlineJob(jobId, schedulerId);
         if (n < 1) {
             return Boolean.FALSE;
         }
@@ -117,6 +148,11 @@ public class JobManager extends Lifecycle {
     }
 
     public synchronized Boolean reloadJob(Long jobId){
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+            log.error("happen error", e);
+        }
         if (!jobCaches.containsKey(jobId))
             return Boolean.FALSE;
 
@@ -125,7 +161,12 @@ public class JobManager extends Lifecycle {
 
     @Transactional(rollbackFor = Exception.class)
     public synchronized Boolean failoverJob(Long jobId, String schedulerId) {
-        Integer n = jobScheduleDao.failoverJob(jobId, schedulerId, schedulerContext.getSchedulerId());
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+            log.error("happen error", e);
+        }
+        Integer n = jobScheduleDao.failoverJob(jobId, schedulerId, schedulerId);
         if (n < 1) {
             return Boolean.FALSE;
         }
@@ -175,7 +216,7 @@ public class JobManager extends Lifecycle {
         jobCaches.values().forEach(ScheduledJob::delete);
         jobCaches.clear();
         schedulers.getScheduler().shutdown();
-        failoverService.processSchedulerFailed(schedulerContext.getSchedulerId());
+        failoverService.processSchedulerFailed(schedulerId);
     }
 
     @Override
