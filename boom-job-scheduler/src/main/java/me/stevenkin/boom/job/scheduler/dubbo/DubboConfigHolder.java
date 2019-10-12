@@ -39,6 +39,7 @@ public class DubboConfigHolder {
         registryConfig.setAddress(dubboConfig.getRegisterAddress());
         registryConfig.setPort(dubboConfig.getRegisterPort());
         registryConfig.setProtocol(dubboConfig.getRegisterProtocol());
+        registryConfig.setGroup(boomJobConfig.getZk().getNamespace());
 
         protocolConfig = new ProtocolConfig();
         protocolConfig.setName(dubboConfig.getProtocolName());

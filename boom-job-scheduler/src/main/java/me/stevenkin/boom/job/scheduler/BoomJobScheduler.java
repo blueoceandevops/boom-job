@@ -32,13 +32,23 @@ public class BoomJobScheduler extends Lifecycle {
 
     private CommandProcessor commandProcessor;
 
+    private String schedulerId;
+
     @Override
     public void doStart() throws Exception {
+        // scan dubbo provider and export
         dubboProviderScanner.start();
+        // get scheduler id use provider url
+        schedulerId = dubboProviderScanner.getSchedulerId();
+        // listen client cluster
         clientCluster.start();
+        // lister scheduler cluster
         schedulerCluster.start();
+        // start leader selector
         leaderSelector.start();
+        //start job manager
         jobManager.start();
+        // start command processor
         initCommandProcessor();
     }
 
@@ -47,22 +57,37 @@ public class BoomJobScheduler extends Lifecycle {
         commandProcessor.setComponent(this);
         commandProcessor.setZkClient(zkClient);
         commandProcessor.setCommandPath(CMD_SCHEDULER);
-        commandProcessor.setId(dubboProviderScanner.getSchedulerId());
+        commandProcessor.setId(schedulerId);
         commandProcessor.start();
     }
 
     @Override
     public void doPause() throws Exception {
-
+        dubboProviderScanner.pause();
+        clientCluster.pause();
+        schedulerCluster.pause();
+        leaderSelector.pause();
+        jobManager.pause();
+        commandProcessor.pause();
     }
 
     @Override
     public void doResume() throws Exception {
-
+        dubboProviderScanner.resume();
+        clientCluster.resume();
+        schedulerCluster.resume();
+        leaderSelector.resume();
+        jobManager.resume();
+        commandProcessor.resume();
     }
 
     @Override
     public void doShutdown() throws Exception {
-
+        dubboProviderScanner.shutdown();
+        clientCluster.shutdown();
+        schedulerCluster.shutdown();
+        leaderSelector.shutdown();
+        jobManager.shutdown();
+        commandProcessor.shutdown();
     }
 }

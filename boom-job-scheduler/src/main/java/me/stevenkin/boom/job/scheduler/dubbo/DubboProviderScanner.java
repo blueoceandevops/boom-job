@@ -89,6 +89,6 @@ public class DubboProviderScanner extends Lifecycle {
 
     @Override
     public void doShutdown() throws Exception {
-
+        //use dubbo jvm shutdown hook
     }
 }

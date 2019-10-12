@@ -24,6 +24,14 @@ public class CommandProcessor extends Lifecycle {
     private NodeCache nodeCache;
 
     public CommandProcessor() {
+    }
+
+    private String nodeCacheListenPath(String commandPath, String id) {
+        return commandPath + "/" + id;
+    }
+
+    @Override
+    public void doStart() throws Exception {
         nodeCache = zkClient.registerNodeCacheListener(nodeCacheListenPath(commandPath, id), new NodeListener() {
             @Override
             public void onChange(String path, Stat stat, byte[] data) {
@@ -36,14 +44,6 @@ public class CommandProcessor extends Lifecycle {
 
             }
         });
-    }
-
-    private String nodeCacheListenPath(String commandPath, String id) {
-        return commandPath + "/" + id;
-    }
-
-    @Override
-    public void doStart() throws Exception {
         nodeCache.start();
         initProcess();
     }
