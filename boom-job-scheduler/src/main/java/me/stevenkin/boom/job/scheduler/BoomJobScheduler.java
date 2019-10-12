@@ -45,6 +45,7 @@ public class BoomJobScheduler extends Lifecycle {
         // lister scheduler cluster
         schedulerCluster.start();
         // start leader selector
+        leaderSelector.setSchedulerId(schedulerId);
         leaderSelector.start();
         //start job manager
         jobManager.start();

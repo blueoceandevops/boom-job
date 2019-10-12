@@ -1,5 +1,6 @@
 package me.stevenkin.boom.job.scheduler.cluster;
 
+import lombok.Setter;
 import me.stevenkin.boom.job.common.exception.ZkException;
 import me.stevenkin.boom.job.common.support.Lifecycle;
 import me.stevenkin.boom.job.common.zk.ZkClient;
@@ -25,8 +26,8 @@ public class LeaderSelector extends Lifecycle {
     private final static String LEADER = "/leader";
     @Autowired
     private ZkClient zkClient;
-    @Autowired
-    private SchedulerContext schedulerContext;
+    @Setter
+    private String schedulerId;
     @Autowired
     private NodeFailedProcessor processor;
 
@@ -68,11 +69,11 @@ public class LeaderSelector extends Lifecycle {
                         return ;
                     }
                     latch = new CountDownLatch(1);
-                    zkClient.update(LEADER, schedulerContext.getSchedulerId());
+                    zkClient.update(LEADER, schedulerId);
                     processor.start();
                     scheduler = Executors.newScheduledThreadPool(1);
                     scheduler.scheduleAtFixedRate(() -> {
-                        if (!Objects.equals(schedulerContext.getSchedulerId(), getLeader())) {
+                        if (!Objects.equals(schedulerId, getLeader())) {
                             try {
                                 lock.lock();
                                 if (!isLeader)
@@ -103,7 +104,7 @@ public class LeaderSelector extends Lifecycle {
                 latch.await();
             }
         });
-        selector.setId(schedulerContext.getSchedulerId());
+        selector.setId(schedulerId);
         selector.start();
         isLeader = false;
         isPaused = false;

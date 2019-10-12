@@ -2,6 +2,7 @@ package me.stevenkin.boom.job.scheduler.cluster;
 
 import com.alibaba.dubbo.common.URL;
 import lombok.extern.slf4j.Slf4j;
+import me.stevenkin.boom.job.common.kit.NameKit;
 import me.stevenkin.boom.job.common.kit.PathKit;
 import me.stevenkin.boom.job.common.support.Lifecycle;
 import me.stevenkin.boom.job.common.zk.ZkClient;
@@ -13,14 +14,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Component
 @Slf4j
 public class ClientCluster extends Lifecycle {
+    private static final String FAILOVER_PATH = "/failover/client";
+
     private static final String INTERFACE = "me.stevenkin.boom.job.common.service.ClientProcessor";
 
     private static final String PROVIDERS = "providers";
@@ -33,6 +33,10 @@ public class ClientCluster extends Lifecycle {
     private PathChildrenCache removeCache;
 
     private Map<String, List<String>> appClientMap = new HashMap<>();
+
+    public List<String> getAppClientList(String app) {
+        return Collections.unmodifiableList(appClientMap.getOrDefault(app, new ArrayList<>()));
+    }
 
     @Override
     public void doStart() throws Exception {
@@ -49,6 +53,7 @@ public class ClientCluster extends Lifecycle {
         //listen first, then traversing
         addCache.start();
         removeCache.start();
+
         List<String> paths = zkClient.gets(path);
         if (paths != null && !paths.isEmpty()) {
             paths.stream().map(PathKit::lastNode).forEach(this::addAppClient);
@@ -84,7 +89,7 @@ public class ClientCluster extends Lifecycle {
 
     private synchronized void addAppClient(String url) {
         String app = getGroup(url);
-        String clientId = getClientId(url);
+        String clientId = NameKit.getNodeId(url);
         List<String> clientIds = appClientMap.get(app);
         if (clientIds == null) {
             clientIds = new ArrayList<>();
@@ -97,26 +102,17 @@ public class ClientCluster extends Lifecycle {
 
     private synchronized void removeAppClient(String url) {
         String app = getGroup(url);
-        String clientId = getClientId(url);
+        String clientId = NameKit.getNodeId(url);
         List<String> clientIds = appClientMap.get(app);
         if (clientIds != null) {
             clientIds.remove(clientId);
         }
+        zkClient.create(PathKit.format(FAILOVER_PATH, clientId));
     }
 
     private String getGroup(String url) {
         URL url1 = URL.valueOf(url);
         return url1.getParameterAndDecoded("group");
 
-    }
-
-    private String getClientId(String url) {
-        URL url1 = URL.valueOf(url);
-        String timestamp = url1.getParameter("timestamp");
-        if (StringUtils.isEmpty(timestamp)) {
-            return null;
-        }
-        Integer.parseInt(timestamp);
-        return url1.getHost() + "_" + url1.getPort() + "_" + timestamp;
     }
 }
