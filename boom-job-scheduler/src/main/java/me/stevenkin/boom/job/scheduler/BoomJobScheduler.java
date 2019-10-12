@@ -15,7 +15,7 @@ import org.springframework.stereotype.Component;
 @Component
 @Slf4j
 public class BoomJobScheduler extends Lifecycle {
-    private static final String CMD_SCHEDULER = "command/scheduler";
+    private static final String CMD_SCHEDULER = "/command/scheduler";
 
     @Autowired
     private ClientCluster clientCluster;

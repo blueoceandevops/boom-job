@@ -27,7 +27,7 @@ public class CommandProcessor extends Lifecycle {
     }
 
     private String nodeCacheListenPath(String commandPath, String id) {
-        return commandPath + "/" + id;
+        return PathKit.format(commandPath, id);
     }
 
     @Override
