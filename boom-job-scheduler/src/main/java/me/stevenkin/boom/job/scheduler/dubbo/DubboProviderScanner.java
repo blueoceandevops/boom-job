@@ -3,6 +3,7 @@ package me.stevenkin.boom.job.scheduler.dubbo;
 import com.alibaba.dubbo.config.annotation.Service;
 import com.alibaba.dubbo.config.spring.ServiceBean;
 import lombok.extern.slf4j.Slf4j;
+import me.stevenkin.boom.job.common.support.Lifecycle;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.aop.support.AopUtils;
@@ -18,7 +19,7 @@ import java.util.Map;
 
 @Component
 @Slf4j
-public class DubboProviderScanner implements DisposableBean{
+public class DubboProviderScanner extends Lifecycle {
 
     @Autowired
     private ApplicationContext applicationContext;
@@ -28,7 +29,6 @@ public class DubboProviderScanner implements DisposableBean{
 
     private Map<String, ServiceBean<Object>> serviceBeanMap = new HashMap<>();
 
-    @PostConstruct
     public void scan() {
         Map<String, Object> beanMap = this.applicationContext.getBeansWithAnnotation(Service.class);
         if (beanMap != null && !beanMap.isEmpty()) {
@@ -68,15 +68,27 @@ public class DubboProviderScanner implements DisposableBean{
 
     }
 
+    public String getSchedulerId() {
+        return null;
+    }
+
     @Override
-    public void destroy() throws Exception {
-        serviceBeanMap.values().forEach(s -> {
-            try {
-                s.destroy();
-            } catch (Exception e) {
-                log.error("destroy service {} happened error", s, e);
-            }
-        });
-        serviceBeanMap.clear();
+    public void doStart() throws Exception {
+        scan();
+    }
+
+    @Override
+    public void doPause() throws Exception {
+
+    }
+
+    @Override
+    public void doResume() throws Exception {
+
+    }
+
+    @Override
+    public void doShutdown() throws Exception {
+
     }
 }

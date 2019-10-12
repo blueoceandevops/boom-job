@@ -82,6 +82,7 @@ public class LeaderSelector extends Lifecycle {
                                     scheduler.shutdown();
                                     scheduler = null;
                                 }
+                                releaseLeader();
                                 try {
                                     selector.requeue();
                                 }catch (Exception e) {

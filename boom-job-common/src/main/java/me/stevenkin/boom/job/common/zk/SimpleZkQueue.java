@@ -50,10 +50,7 @@ public class SimpleZkQueue implements ZkQueue{
         queue = new LinkedList<>();
         List<String> nodes = zkClient.gets(path);
         if (!Iterables.isEmpty(nodes)) {
-            nodes.forEach(n -> {
-                String nodePath = PathKit.format(path, n);
-                queue.add(new ZkElement(n, zkClient.get(nodePath)));
-            });
+            nodes.forEach(n -> queue.add(new ZkElement(n, zkClient.get(n))));
         }
         latch.countDown();
     }
