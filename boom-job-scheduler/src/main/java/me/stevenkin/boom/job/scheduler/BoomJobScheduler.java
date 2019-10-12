@@ -54,7 +54,7 @@ public class BoomJobScheduler extends Lifecycle {
         jobManager.setSchedulerId(schedulerId);
         jobManager.start();
         jobManager.getLatch().countDown();
-        //start job excutor
+        //start job executor
         jobExecutor.setSchedulerId(schedulerId);
         jobExecutor.getLatch().countDown();
         // start command processor
