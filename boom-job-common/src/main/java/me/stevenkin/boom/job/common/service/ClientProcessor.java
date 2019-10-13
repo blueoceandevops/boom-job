@@ -5,6 +5,6 @@ import me.stevenkin.boom.job.common.dto.JobFireResponse;
 
 public interface ClientProcessor {
 
-    JobFireResponse fireJob(JobFireRequest request) throws Exception;
+    JobFireResponse fireJob(JobFireRequest request);
 
 }

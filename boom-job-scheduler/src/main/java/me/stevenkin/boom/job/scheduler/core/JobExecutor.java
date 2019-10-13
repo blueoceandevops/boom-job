@@ -12,7 +12,7 @@ import me.stevenkin.boom.job.common.enums.JobInstanceStatus;
 import me.stevenkin.boom.job.common.kit.NameKit;
 import me.stevenkin.boom.job.common.po.JobInstance;
 import me.stevenkin.boom.job.common.po.JobInstanceShard;
-import me.stevenkin.boom.job.common.service.JobProcessor;
+import me.stevenkin.boom.job.common.service.ClientProcessor;
 import me.stevenkin.boom.job.storage.dao.JobInstanceDao;
 import me.stevenkin.boom.job.storage.dao.JobInstanceShardDao;
 import me.stevenkin.boom.job.storage.dao.JobScheduleDao;
@@ -41,7 +41,7 @@ public class JobExecutor {
     private CountDownLatch latch = new CountDownLatch(1);
 
     @Transactional(rollbackFor = Exception.class)
-    public void execute(JobDetail jobDetail, JobProcessor jobProcessor, JobExecutionContext context) {
+    public void execute(JobDetail jobDetail, ClientProcessor clientProcessor, JobExecutionContext context) {
         try {
             latch.await();
         } catch (InterruptedException e) {
@@ -94,7 +94,7 @@ public class JobExecutor {
         request.setJobInstanceId(jobInstance.getId());
         request.setJobShardIds(jobShardIds);
         request.setSchedulerId(schedulerId);
-        jobProcessor.fireJob(request);
+        clientProcessor.fireJob(request);
     }
 
 }

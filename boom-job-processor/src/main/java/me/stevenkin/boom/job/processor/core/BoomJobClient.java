@@ -4,10 +4,7 @@ import com.alibaba.dubbo.config.ApplicationConfig;
 import com.alibaba.dubbo.config.ProtocolConfig;
 import com.alibaba.dubbo.config.RegistryConfig;
 import me.stevenkin.boom.job.common.service.JobExecuteService;
-import me.stevenkin.boom.job.common.service.JobProcessor;
 import me.stevenkin.boom.job.common.service.RegisterService;
-import me.stevenkin.boom.job.common.support.Lifecycle;
-import me.stevenkin.boom.job.common.service.ShardExecuteService;
 import me.stevenkin.boom.job.common.zk.ZkClient;
 
 import java.util.concurrent.ExecutorService;

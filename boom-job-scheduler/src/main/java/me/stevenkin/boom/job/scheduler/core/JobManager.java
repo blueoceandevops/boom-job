@@ -1,5 +1,7 @@
 package me.stevenkin.boom.job.scheduler.core;
 
+import com.alibaba.dubbo.config.ReferenceConfig;
+import com.alibaba.dubbo.config.annotation.Reference;
 import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
@@ -11,6 +13,7 @@ import me.stevenkin.boom.job.common.po.App;
 import me.stevenkin.boom.job.common.po.Job;
 import me.stevenkin.boom.job.common.po.JobConfig;
 import me.stevenkin.boom.job.common.po.JobKey;
+import me.stevenkin.boom.job.common.service.ClientProcessor;
 import me.stevenkin.boom.job.common.support.Lifecycle;
 import me.stevenkin.boom.job.common.zk.ZkClient;
 import me.stevenkin.boom.job.scheduler.service.FailoverService;
@@ -62,6 +65,8 @@ public class JobManager extends Lifecycle {
     private SchedulerFactory schedulers;
 
     private Map<Long, ScheduledJob> jobCaches = new ConcurrentHashMap<>();
+    @Setter
+    private Map<String, ClientProcessor> referenceCache = new ConcurrentHashMap<>();
 
     @Transactional(rollbackFor = Exception.class)
     public synchronized Boolean onlineJob(Long jobId){
@@ -166,7 +171,9 @@ public class JobManager extends Lifecycle {
         } catch (InterruptedException e) {
             log.error("happen error", e);
         }
-        Integer n = jobScheduleDao.failoverJob(jobId, schedulerId, schedulerId);
+        if (schedulerId.equals(this.schedulerId))
+            return Boolean.FALSE;
+        Integer n = jobScheduleDao.failoverJob(jobId, schedulerId, this.schedulerId);
         if (n < 1) {
             return Boolean.FALSE;
         }

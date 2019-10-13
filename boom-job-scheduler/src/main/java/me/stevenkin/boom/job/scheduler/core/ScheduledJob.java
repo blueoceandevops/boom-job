@@ -8,7 +8,7 @@ import me.stevenkin.boom.job.common.exception.ScheduleException;
 import me.stevenkin.boom.job.common.kit.NameKit;
 import me.stevenkin.boom.job.common.po.Job;
 import me.stevenkin.boom.job.common.po.JobKey;
-import me.stevenkin.boom.job.common.service.JobProcessor;
+import me.stevenkin.boom.job.common.service.ClientProcessor;
 import me.stevenkin.boom.job.common.zk.ZkClient;
 import me.stevenkin.boom.job.scheduler.dubbo.DubboConfigHolder;
 import org.quartz.*;
@@ -34,9 +34,7 @@ public class ScheduledJob {
 
     private DubboConfigHolder dubboConfigHolder;
 
-    private JobProcessor jobProcessor;
-
-    private ReferenceConfig<JobProcessor> reference;
+    private ClientProcessor clientProcessor;
 
     private volatile boolean isPaused; //job is not exist in schedule pool
 
@@ -62,7 +60,7 @@ public class ScheduledJob {
             throw new ScheduleException(e);
         }
 
-        JobDataMap jobData = buildJobData(jobDetail, jobProcessor, jobExecutor);
+        JobDataMap jobData = buildJobData(jobDetail, clientProcessor, jobExecutor);
 
         org.quartz.JobDetail quartzJob = newJob(ProxyJob.class)
                 .withIdentity(jobKey)
@@ -104,7 +102,6 @@ public class ScheduledJob {
     }
 
     public Boolean offline() {
-        reference.destroy();
         return delete();
     }
 
@@ -137,11 +134,11 @@ public class ScheduledJob {
                 NameKit.getAppKey(jobKey.getAppName(), jobKey.getAuthor()));
     }
 
-    private JobDataMap buildJobData(me.stevenkin.boom.job.common.dto.JobDetail jobDetail, JobProcessor jobProcessor, JobExecutor jobExecutor) {
+    private JobDataMap buildJobData(me.stevenkin.boom.job.common.dto.JobDetail jobDetail, ClientProcessor clientProcessor, JobExecutor jobExecutor) {
         JobDataMap jobData = new JobDataMap();
         jobData.put("jobExecutor", jobExecutor);
         jobData.put("jobDetail", jobDetail);
-        jobData.put("jobProcessor", jobProcessor);
+        jobData.put("clientProcessor", clientProcessor);
         return jobData;
     }
 
@@ -158,12 +155,23 @@ public class ScheduledJob {
     }
 
     private void buildJobProcessor(JobKey jobKey) {
-        reference = new ReferenceConfig<>();
-        reference.setApplication(dubboConfigHolder.getApplicationConfig());
-        reference.setRegistry(dubboConfigHolder.getRegistryConfig());
-        reference.setInterface(JobProcessor.class);
-        reference.setGroup(NameKit.getJobId(jobKey.getAppName(), jobKey.getAuthor(), jobKey.getJobClassName()));
-        jobProcessor = reference.get();
+        String group = NameKit.getAppKey(jobKey.getAppName(), jobKey.getAuthor());
+        clientProcessor = jobManager.getReferenceCache().get(group);
+        if (clientProcessor == null) {
+            synchronized (jobManager.getReferenceCache()) {
+                clientProcessor = jobManager.getReferenceCache().get(group);
+                if (clientProcessor == null) {
+                    ReferenceConfig<ClientProcessor> reference = new ReferenceConfig<>();
+                    reference.setApplication(dubboConfigHolder.getApplicationConfig());
+                    reference.setRegistry(dubboConfigHolder.getRegistryConfig());
+                    reference.setInterface(ClientProcessor.class);
+                    reference.setCheck(false);
+                    reference.setGroup(group);
+                    clientProcessor = reference.get();
+                    jobManager.getReferenceCache().put(group, clientProcessor);
+                }
+            }
+        }
     }
 
     private TriggerKey buildTriggerKey(JobKey jobKey) {

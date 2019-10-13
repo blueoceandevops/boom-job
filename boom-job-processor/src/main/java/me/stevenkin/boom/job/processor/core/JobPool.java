@@ -1,16 +1,9 @@
 package me.stevenkin.boom.job.processor.core;
 
 import com.alibaba.dubbo.common.utils.ConcurrentHashSet;
-import com.alibaba.dubbo.config.ApplicationConfig;
-import com.alibaba.dubbo.config.RegistryConfig;
-import com.alibaba.dubbo.config.ServiceConfig;
 import lombok.extern.slf4j.Slf4j;
 import me.stevenkin.boom.job.common.dto.AppInfo;
-import me.stevenkin.boom.job.common.dto.JobInfo;
-import me.stevenkin.boom.job.common.dto.RegisterResponse;
-import me.stevenkin.boom.job.common.service.JobProcessor;
 import me.stevenkin.boom.job.common.service.RegisterService;
-import me.stevenkin.boom.job.common.kit.NameKit;
 import me.stevenkin.boom.job.common.support.Lifecycle;
 
 import java.util.HashSet;

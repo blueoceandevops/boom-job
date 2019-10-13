@@ -10,7 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import me.stevenkin.boom.job.common.dto.JobFireRequest;
 import me.stevenkin.boom.job.common.dto.JobFireResponse;
 import me.stevenkin.boom.job.common.enums.JobFireResult;
-import me.stevenkin.boom.job.common.service.JobProcessor;
+import me.stevenkin.boom.job.common.service.ClientProcessor;
 import me.stevenkin.boom.job.common.service.JobSchedulerService;
 
 import java.util.ArrayList;
@@ -114,7 +114,7 @@ public class JobSchedulerClusterInvoker<T> extends FailfastClusterInvoker<T> {
     }
 
     private boolean isProcessor(Class<?> clazz, String method, Class<?>[] types) {
-        return clazz.equals(JobProcessor.class)
+        return clazz.equals(ClientProcessor.class)
                 && method.equals("fireJob")
                 && types != null
                 && types.length == 1

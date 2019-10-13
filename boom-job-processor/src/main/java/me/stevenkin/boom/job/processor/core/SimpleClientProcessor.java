@@ -58,8 +58,12 @@ public class SimpleClientProcessor extends Lifecycle implements ClientProcessor 
     }
 
     @Override
-    public JobFireResponse fireJob(JobFireRequest request) throws Exception {
-        latch.await();
+    public JobFireResponse fireJob(JobFireRequest request) {
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+            log.error("happen error", e);
+        }
         List<String> clients = new ArrayList<>();
         clients.add(clientId);
         Job job = jobPool.getJob(request.getJobClass());
