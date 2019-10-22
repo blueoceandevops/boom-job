@@ -6,7 +6,7 @@ import me.stevenkin.boom.job.common.dto.AppInfo;
 import me.stevenkin.boom.job.common.dto.RegisterResponse;
 import me.stevenkin.boom.job.common.po.App;
 import me.stevenkin.boom.job.common.po.Job;
-import me.stevenkin.boom.job.common.service.RegisterService;
+import me.stevenkin.boom.job.common.service.AppRegisterService;
 import me.stevenkin.boom.job.storage.dao.AppInfoDao;
 import me.stevenkin.boom.job.storage.dao.JobInfoDao;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,7 +18,7 @@ import java.time.LocalDateTime;
 @Slf4j
 @Service
 @Component
-public class RegisterServiceImpl implements RegisterService {
+public class AppRegisterServiceImpl implements AppRegisterService {
     @Autowired
     private AppInfoDao appInfoDao;
     @Autowired

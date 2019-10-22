@@ -3,7 +3,7 @@ package me.stevenkin.boom.job.processor.core;
 import com.alibaba.dubbo.common.utils.ConcurrentHashSet;
 import lombok.extern.slf4j.Slf4j;
 import me.stevenkin.boom.job.common.dto.AppInfo;
-import me.stevenkin.boom.job.common.service.RegisterService;
+import me.stevenkin.boom.job.common.service.AppRegisterService;
 import me.stevenkin.boom.job.common.support.Lifecycle;
 
 import java.util.HashSet;
@@ -20,11 +20,11 @@ public class JobPool extends Lifecycle {
 
     private Map<String, Job> jobCache = new ConcurrentHashMap<>();
 
-    private RegisterService registerService;
+    private AppRegisterService appRegisterService;
 
     public JobPool(BoomJobClient jobClient) {
         this.jobClient = jobClient;
-        this.registerService = jobClient.registerService();
+        this.appRegisterService = jobClient.registerService();
     }
 
     public Job getJob(String jobClass) {
@@ -42,7 +42,7 @@ public class JobPool extends Lifecycle {
         appInfo.setAuthor(jobClient.author());
         appInfo.setAppName(jobClient.appName());
         appInfo.setJobs(new HashSet<>(jobs));
-        registerService.registerAppInfo(appInfo);
+        appRegisterService.registerAppInfo(appInfo);
     }
 
     @Override

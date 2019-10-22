@@ -5,10 +5,10 @@ import com.alibaba.dubbo.config.ProtocolConfig;
 import com.alibaba.dubbo.config.ReferenceConfig;
 import com.alibaba.dubbo.config.RegistryConfig;
 import com.alibaba.dubbo.config.utils.ReferenceConfigCache;
+import com.alibaba.dubbo.registry.RegistryService;
 import me.stevenkin.boom.job.common.service.*;
 import me.stevenkin.boom.job.common.kit.ExecutorKit;
 import me.stevenkin.boom.job.common.kit.NameKit;
-import me.stevenkin.boom.job.common.kit.SystemKit;
 import me.stevenkin.boom.job.common.support.Lifecycle;
 import me.stevenkin.boom.job.common.zk.CommandProcessor;
 import me.stevenkin.boom.job.common.zk.ZkClient;
@@ -55,13 +55,17 @@ public class SimpleBoomJobClient extends Lifecycle implements BoomJobClient {
 
     private ProtocolConfig protocol = new ProtocolConfig();
 
-    private RegisterService registerService;
+    private AppRegisterService appRegisterService;
 
     private JobExecuteService jobExecuteService;
 
-    private ReferenceConfig<RegisterService> referRegister;
+    private RegistryService registryService;
+
+    private ReferenceConfig<AppRegisterService> referRegister;
 
     private ReferenceConfig<JobExecuteService> referJob;
+
+    private ReferenceConfig<RegistryService> referRegistry;
 
     private ReferenceConfigCache cache = ReferenceConfigCache.getCache();
 
@@ -150,13 +154,18 @@ public class SimpleBoomJobClient extends Lifecycle implements BoomJobClient {
     }
 
     @Override
-    public RegisterService registerService() {
-        return registerService;
+    public AppRegisterService registerService() {
+        return appRegisterService;
     }
 
     @Override
     public JobExecuteService jobExecuteService() {
         return jobExecuteService;
+    }
+
+    @Override
+    public RegistryService registryService() {
+        return registryService;
     }
 
     @Override
@@ -194,6 +203,7 @@ public class SimpleBoomJobClient extends Lifecycle implements BoomJobClient {
     private void referService() {
         this.referRegister = new ReferenceConfig<>();
         this.referJob = new ReferenceConfig<>();
+        this.referRegistry = new ReferenceConfig<>();
 
         this.referRegister.setTimeout(this.timeout);
         this.referJob.setTimeout(this.timeout);
@@ -203,14 +213,19 @@ public class SimpleBoomJobClient extends Lifecycle implements BoomJobClient {
 
         this.referRegister.setApplication(application);
         this.referRegister.setRegistry(registry);
-        this.referRegister.setInterface(RegisterService.class);
+        this.referRegister.setInterface(AppRegisterService.class);
 
         this.referJob.setApplication(application);
         this.referJob.setRegistry(registry);
         this.referJob.setInterface(JobExecuteService.class);
 
-        this.registerService = cache.get(referRegister);
+        this.referRegistry.setApplication(application);
+        this.referRegistry.setRegistry(registry);
+        this.referRegistry.setInterface(RegistryService.class);
+
+        this.appRegisterService = cache.get(referRegister);
         this.jobExecuteService = cache.get(referJob);
+        this.registryService = cache.get(referRegistry);
     }
 
     @Override

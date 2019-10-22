@@ -3,8 +3,9 @@ package me.stevenkin.boom.job.processor.core;
 import com.alibaba.dubbo.config.ApplicationConfig;
 import com.alibaba.dubbo.config.ProtocolConfig;
 import com.alibaba.dubbo.config.RegistryConfig;
+import com.alibaba.dubbo.registry.RegistryService;
 import me.stevenkin.boom.job.common.service.JobExecuteService;
-import me.stevenkin.boom.job.common.service.RegisterService;
+import me.stevenkin.boom.job.common.service.AppRegisterService;
 import me.stevenkin.boom.job.common.zk.ZkClient;
 
 import java.util.concurrent.ExecutorService;
@@ -35,9 +36,11 @@ public interface BoomJobClient {
 
     ProtocolConfig protocolConfig();
 
-    RegisterService registerService();
+    AppRegisterService registerService();
 
     JobExecuteService jobExecuteService();
+
+    RegistryService registryService();
 
     JobPool jobPool();
 

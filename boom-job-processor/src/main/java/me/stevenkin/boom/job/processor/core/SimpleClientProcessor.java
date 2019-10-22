@@ -2,9 +2,12 @@ package me.stevenkin.boom.job.processor.core;
 
 import com.alibaba.dubbo.common.URL;
 import com.alibaba.dubbo.config.ServiceConfig;
+import com.alibaba.dubbo.registry.RegistryService;
 import lombok.extern.slf4j.Slf4j;
 import me.stevenkin.boom.job.common.dto.*;
+import me.stevenkin.boom.job.common.dubbo.Configuration;
 import me.stevenkin.boom.job.common.enums.JobFireResult;
+import me.stevenkin.boom.job.common.kit.URLKit;
 import me.stevenkin.boom.job.common.service.ClientProcessor;
 import me.stevenkin.boom.job.common.service.JobExecuteService;
 import me.stevenkin.boom.job.common.service.ShardExecuteService;
@@ -34,17 +37,24 @@ public class SimpleClientProcessor extends Lifecycle implements ClientProcessor 
 
     private JobExecuteService jobExecuteService;
 
+    private RegistryService registryService;
+
     private String clientId;
 
     private String appKey;
 
     private CountDownLatch latch;
 
+    private URL serviceUrl;
+
+    private URL configUrl;
+
     public SimpleClientProcessor(BoomJobClient jobClient) {
         this.jobClient = jobClient;
         this.jobPool = jobClient.jobPool();
         this.executor = jobClient.executor();
         this.jobExecuteService = jobClient.jobExecuteService();
+        this.registryService = jobClient.registryService();
         this.appKey = jobClient.appKey();
 
         this.service.setApplication(jobClient.applicationConfig());
@@ -141,23 +151,31 @@ public class SimpleClientProcessor extends Lifecycle implements ClientProcessor 
     }
 
     private String getClientId(ServiceConfig<ClientProcessor> service) {
-        URL url = service.toUrl();
-        String startTime = url.getParameter("timestamp");
-        if (StringUtils.isEmpty(startTime)) {
-            throw new RuntimeException();
-        }
-        Integer.parseInt(startTime);
-        return url.getHost() + "_" + url.getPort() + "_" + startTime;
+        serviceUrl = service.toUrl();
+        return URLKit.urlToNode(serviceUrl).toString();
     }
 
     @Override
     public void doPause() throws Exception {
-        //TODO disable service
+        //disable service
+        if (serviceUrl == null)
+            throw new IllegalStateException();
+        Configuration configuration = new Configuration();
+        configuration.setService(serviceUrl.getServiceInterface());
+        configuration.setAddress(serviceUrl.getAddress());
+        configuration.setPort(serviceUrl.getPort());
+        configuration.setEnabled(true);
+        configUrl = configuration.toUrl();
+        registryService.register(configUrl);
     }
 
     @Override
     public void doResume() throws Exception {
-        //TODO enable service
+        //enable service
+        if (configUrl == null)
+            throw new IllegalStateException();
+        registryService.unregister(configUrl);
+        configUrl = null;
     }
 
     @Override
