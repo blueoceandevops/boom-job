@@ -5,15 +5,18 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.Objects;
+
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 public class Node {
+    private String group;
     private String address;
     private Integer port;
     private String startTime;
-    private boolean diabled;
+    private boolean disabled;
 
     @Override
     public boolean equals(Object o) {
@@ -24,7 +27,13 @@ public class Node {
         if (!(o instanceof Node))
             return false;
         Node o1 = (Node) o;
-        return address.equals(o1.address) && port.equals(o1.port) && startTime.equals(o1.startTime);
+        return group.equals(o1.getGroup()) && address.equals(o1.address) && port.equals(o1.port) && startTime.equals(o1.startTime);
+    }
+
+    @Override
+    public int hashCode() {
+
+        return Objects.hash(group, address, port, startTime);
     }
 
     @Override

@@ -4,9 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import me.stevenkin.boom.job.common.support.Lifecycle;
 import me.stevenkin.boom.job.common.zk.CommandProcessor;
 import me.stevenkin.boom.job.common.zk.ZkClient;
-import me.stevenkin.boom.job.scheduler.cluster.ClientCluster;
-import me.stevenkin.boom.job.scheduler.cluster.LeaderSelector;
-import me.stevenkin.boom.job.scheduler.cluster.SchedulerCluster;
+import me.stevenkin.boom.job.scheduler.cluster.*;
 import me.stevenkin.boom.job.scheduler.core.JobExecutor;
 import me.stevenkin.boom.job.scheduler.core.JobManager;
 import me.stevenkin.boom.job.scheduler.dubbo.DubboProviderScanner;
@@ -19,9 +17,9 @@ public class BoomJobScheduler extends Lifecycle {
     private static final String CMD_SCHEDULER = "/command/scheduler";
 
     @Autowired
-    private ClientCluster clientCluster;
+    private SimpleClientCluster clientCluster;
     @Autowired
-    private SchedulerCluster schedulerCluster;
+    private SimpleSchedulerCluster schedulerCluster;
     @Autowired
     private LeaderSelector leaderSelector;
     @Autowired
