@@ -1,8 +1,11 @@
 package me.stevenkin.boom.job.scheduler.dubbo;
 
+import com.alibaba.dubbo.common.URL;
 import com.alibaba.dubbo.config.annotation.Service;
 import com.alibaba.dubbo.config.spring.ServiceBean;
+import com.alibaba.dubbo.registry.RegistryService;
 import lombok.extern.slf4j.Slf4j;
+import me.stevenkin.boom.job.common.dubbo.Configuration;
 import me.stevenkin.boom.job.common.kit.NameKit;
 import me.stevenkin.boom.job.common.support.Lifecycle;
 import org.apache.commons.lang3.ArrayUtils;
@@ -27,10 +30,16 @@ public class DubboProviderScanner extends Lifecycle {
     private ApplicationContext applicationContext;
     @Autowired
     private DubboConfigHolder dubboConfigHolder;
+    @Autowired
+    private RegistryService registryService;
 
     private List<String> schedulerIds = new ArrayList<>();
 
     private String schedulerId;
+
+    private List<URL> providerUrls = new ArrayList<>();
+
+    private List<URL> configUrls = new ArrayList<>();
 
     private Map<String, ServiceBean<Object>> serviceBeanMap = new HashMap<>();
 
@@ -74,9 +83,7 @@ public class DubboProviderScanner extends Lifecycle {
             serviceConfig.setRef(bean);
             serviceBeanMap.put(beanName, serviceConfig);
             serviceConfig.export();
-            if (serviceName.equals(SERVICE_NAME)){
-                schedulerIds.add(NameKit.getNodeId(serviceConfig.toUrl().toFullString()));
-            }
+            providerUrls.add(serviceConfig.toUrl());
         } catch (Exception e) {
             log.error("scan provider happened error", e);
             throw new RuntimeException(e);
@@ -91,18 +98,42 @@ public class DubboProviderScanner extends Lifecycle {
     @Override
     public void doStart() throws Exception {
         scan();
-        Assert.isTrue(schedulerIds.size() == 1, "schedulerId must be one");
-        schedulerId = schedulerIds.get(0);
+        findSchedulerId();
+    }
+
+    private void findSchedulerId() {
+        Assert.isTrue(!providerUrls.isEmpty(), "provider urls must not be empty");
+        for (URL url : providerUrls) {
+            if (SERVICE_NAME.equals(url.getServiceInterface())) {
+                schedulerId = NameKit.getNodeId(url.toFullString());
+                break;
+            }
+        }
+        throw new RuntimeException("can not find the scheduler id");
     }
 
     @Override
     public void doPause() throws Exception {
-
+        configUrls.clear();
+        for (URL url : providerUrls) {
+            Configuration configuration = new Configuration();
+            configuration.setService(url.getServiceInterface());
+            configuration.setAddress(url.getAddress());
+            configuration.setPort(url.getPort());
+            configuration.setEnabled(true);
+            URL url1 = configuration.toUrl();
+            configUrls.add(url1);
+            registryService.register(url1);
+        }
     }
 
     @Override
     public void doResume() throws Exception {
-
+        Assert.isTrue(!configUrls.isEmpty() && configUrls.size() == providerUrls.size(), "config urls must not be empty");
+        for (URL url : configUrls) {
+            registryService.unregister(url);
+        }
+        configUrls.clear();
     }
 
     @Override

@@ -53,6 +53,7 @@ public class Configuration {
         param.put(Constants.CATEGORY_KEY, Constants.CONFIGURATORS_CATEGORY);
         param.put(Constants.ENABLED_KEY, String.valueOf(isEnabled()));
         param.put(Constants.DYNAMIC_KEY, "false");
+        param.put(Constants.DISABLED_KEY, "true");
         if (!StringUtils.isBlank(application) && !Constants.ANY_VALUE.equals(application)) {
             param.put(Constants.APPLICATION_KEY, application);
         }
