@@ -1,5 +1,6 @@
 package me.stevenkin.boom.job.scheduler.dubbo;
 
+import com.alibaba.dubbo.common.Constants;
 import com.alibaba.dubbo.config.ApplicationConfig;
 import com.alibaba.dubbo.config.ConsumerConfig;
 import com.alibaba.dubbo.config.ProtocolConfig;
@@ -11,6 +12,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
+import java.util.HashMap;
+import java.util.Map;
 
 @Component
 @Data
@@ -40,6 +43,10 @@ public class DubboConfigHolder {
         registryConfig.setPort(dubboConfig.getRegisterPort());
         registryConfig.setProtocol(dubboConfig.getRegisterProtocol());
         registryConfig.setGroup(boomJobConfig.getZk().getNamespace());
+        Map<String, String> params = new HashMap<>();
+        params.put(Constants.ROUTER_KEY, "blacklistRouter");
+        params.put(Constants.RUNTIME_KEY, "true");
+        registryConfig.setParameters(params);
 
         protocolConfig = new ProtocolConfig();
         protocolConfig.setName(dubboConfig.getProtocolName());

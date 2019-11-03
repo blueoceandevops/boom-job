@@ -13,6 +13,7 @@ import me.stevenkin.boom.job.common.kit.NameKit;
 import me.stevenkin.boom.job.common.po.JobInstance;
 import me.stevenkin.boom.job.common.po.JobInstanceShard;
 import me.stevenkin.boom.job.common.service.ClientProcessor;
+import me.stevenkin.boom.job.storage.dao.BlacklistDao;
 import me.stevenkin.boom.job.storage.dao.JobInstanceDao;
 import me.stevenkin.boom.job.storage.dao.JobInstanceShardDao;
 import me.stevenkin.boom.job.storage.dao.JobScheduleDao;
@@ -35,6 +36,8 @@ public class JobExecutor {
     private JobInstanceShardDao jobInstanceShardDao;
     @Autowired
     private JobScheduleDao jobScheduleDao;
+    @Autowired
+    private BlacklistDao blacklistDao;
     @Setter
     private String schedulerId;
     @Getter
@@ -94,6 +97,7 @@ public class JobExecutor {
         request.setJobInstanceId(jobInstance.getId());
         request.setJobShardIds(jobShardIds);
         request.setSchedulerId(schedulerId);
+        request.setBlacklist(blacklistDao.selectByJobId(jobId));
         clientProcessor.fireJob(request);
     }
 
