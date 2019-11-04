@@ -6,6 +6,7 @@ import com.alibaba.dubbo.registry.RegistryService;
 import lombok.extern.slf4j.Slf4j;
 import me.stevenkin.boom.job.common.dto.*;
 import me.stevenkin.boom.job.common.dubbo.Configuration;
+import me.stevenkin.boom.job.common.dubbo.Node;
 import me.stevenkin.boom.job.common.enums.JobFireResult;
 import me.stevenkin.boom.job.common.kit.URLKit;
 import me.stevenkin.boom.job.common.service.ClientProcessor;
@@ -40,6 +41,8 @@ public class SimpleClientProcessor extends Lifecycle implements ClientProcessor 
     private RegistryService registryService;
 
     private String clientId;
+
+    private Node clientNode;
 
     private String appKey;
 
@@ -76,6 +79,8 @@ public class SimpleClientProcessor extends Lifecycle implements ClientProcessor 
         }
         List<String> clients = new ArrayList<>();
         clients.add(clientId);
+        if (request.getBlacklist() != null && request.getBlacklist().contains(clientNode.getAddress()))
+            return new JobFireResponse(JobFireResult.FIRE_FAILED, clients);
         Job job = jobPool.getJob(request.getJobClass());
         if (job == null) {
             return new JobFireResponse(JobFireResult.FIRE_FAILED, clients);
@@ -152,7 +157,8 @@ public class SimpleClientProcessor extends Lifecycle implements ClientProcessor 
 
     private String getClientId(ServiceConfig<ClientProcessor> service) {
         serviceUrl = service.toUrl();
-        return URLKit.urlToNode(serviceUrl).toString();
+        clientNode = URLKit.urlToNode(serviceUrl);
+        return clientNode.toString();
     }
 
     @Override
