@@ -128,7 +128,7 @@ public class JobExecutor {
         zkClient.registerNodeCacheListener(PathKit.format(JOB_INSTANCE_PATH, jobId, jobInstanceId), new NodeListener() {
             @Override
             public void onChange(String path, Stat stat, byte[] data) {
-                holder.setData(JobInstanceStatus.fromCode(JSON.parseObject(new String(data)).getInteger("status")));
+                holder.setData(JobInstanceStatus.fromCode(JSON.parseObject(new String(data), JobInstanceNode.class).getStatus()));
                 latch1.countDown();
             }
 
