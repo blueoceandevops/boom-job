@@ -70,10 +70,16 @@ public class JobSchedulerClusterInvoker<T> extends FailfastClusterInvoker<T> {
                     ids.add(id);
                     request1.setJobShardIds(ids);
                     try {
-                        results.add(invokers.get(i % invokers.size()).invoke(invocation));
+                        results.add(invokers.get(i % invokers.size()).invoke(new RpcInvocation(
+                                invocation.getMethodName(),
+                                invocation.getParameterTypes(),
+                                new Object[]{request1},
+                                invocation.getAttachments(),
+                                invocation.getInvoker())));
                     }catch (Throwable e) {
                         throwables.add(e);
                     }
+                    i++;
                 }
                 if (size > jobShardIds.size()) {
                     for (int j = jobShardIds.size(); j < size; j++) {
@@ -83,7 +89,12 @@ public class JobSchedulerClusterInvoker<T> extends FailfastClusterInvoker<T> {
                         request2.setJobInstanceId(request.getJobInstanceId());
                         request2.setJobShardIds(new ArrayList<>());
                         try {
-                            results.add(invokers.get(i % invokers.size()).invoke(invocation));
+                            results.add(invokers.get(i % invokers.size()).invoke(new RpcInvocation(
+                                    invocation.getMethodName(),
+                                    invocation.getParameterTypes(),
+                                    new Object[]{request2},
+                                    invocation.getAttachments(),
+                                    invocation.getInvoker())));
                         }catch (Throwable e) {
                             throwables.add(e);
                         }
@@ -91,7 +102,7 @@ public class JobSchedulerClusterInvoker<T> extends FailfastClusterInvoker<T> {
                 }
                 if (throwables.size() == size) {
                     log.error("all provider is not alive, select from all providers " + invokers + " for service " + getInterface().getName() + " method " + invocation.getMethodName() + " on consumer " + NetUtils.getLocalHost() + " use dubbo version " + Version.getVersion() + ", but no luck to perform the invocation. Last error is: " + throwables.get(throwables.size() - 1).getMessage(), throwables.get(throwables.size() - 1).getCause() != null ? throwables.get(throwables.size() - 1).getCause() : throwables.get(throwables.size() - 1));
-                    return new RpcResult(new JobFireResponse(JobFireResult.FIRE_FAILED, null));
+                    throw new RpcException();
                 }
                 boolean isFailed = results.stream().anyMatch(r -> JobFireResult.FIRE_FAILED.equals(((JobFireResponse)(r.getValue())).getJobFireResult()));
                 if (isFailed) {

@@ -15,11 +15,11 @@ public class NodeCacheTest {
         System.out.println("create node");
         client.create("/example/node", "hello".getBytes());
         Thread.sleep(1000);
-        client.registerNodeCacheListener(PATH, (p, s, d) -> {
+        /*client.registerNodeCacheListener(PATH, (p, s, d) -> {
             System.out.println("Path: " + p);
             System.out.println("Stat:" + s);
             System.out.println("Data: "+ new String(d));
-        }).start(true);
+        }).start(true);*/
         Thread.sleep(1000);
         System.out.println("delete node");
         client.delete("/example/node");
