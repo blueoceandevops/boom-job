@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import me.stevenkin.boom.job.common.dto.AppInfo;
 import me.stevenkin.boom.job.common.service.AppRegisterService;
 import me.stevenkin.boom.job.common.support.Lifecycle;
+import me.stevenkin.boom.job.processor.job.PlanJob;
 
 import java.util.HashSet;
 import java.util.Map;
@@ -13,6 +14,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
 public class JobPool extends Lifecycle {
+    private static final String INTERNAL_JOB_CLASS = "me.stevenkin.boom.job.processor.job.PlanJob";
 
     private BoomJobClient jobClient;
 
@@ -25,6 +27,7 @@ public class JobPool extends Lifecycle {
     public JobPool(BoomJobClient jobClient) {
         this.jobClient = jobClient;
         this.appRegisterService = jobClient.registerService();
+        registerJob(new PlanJob(this.jobClient.jobPlanExecuteService(), this.jobClient.zkClient()));
     }
 
     public Job getJob(String jobClass) {
@@ -38,10 +41,12 @@ public class JobPool extends Lifecycle {
 
     @Override
     public void doStart() throws Exception {
+        Set<String> jobs1 = new HashSet<>(jobs);
+        jobs1.remove(INTERNAL_JOB_CLASS);
         AppInfo appInfo = new AppInfo();
         appInfo.setAuthor(jobClient.author());
         appInfo.setAppName(jobClient.appName());
-        appInfo.setJobs(new HashSet<>(jobs));
+        appInfo.setJobs(jobs1);
         appRegisterService.registerAppInfo(appInfo);
     }
 

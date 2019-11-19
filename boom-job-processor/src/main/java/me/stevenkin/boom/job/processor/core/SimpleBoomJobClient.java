@@ -61,11 +61,15 @@ public class SimpleBoomJobClient extends Lifecycle implements BoomJobClient {
 
     private RegistryService registryService;
 
+    private JobPlanExecuteService jobPlanExecuteService;
+
     private ReferenceConfig<AppRegisterService> referRegister;
 
     private ReferenceConfig<JobExecuteService> referJob;
 
     private ReferenceConfig<RegistryService> referRegistry;
+
+    private ReferenceConfig<JobPlanExecuteService> referJobPlan;
 
     private ReferenceConfigCache cache = ReferenceConfigCache.getCache();
 
@@ -164,6 +168,11 @@ public class SimpleBoomJobClient extends Lifecycle implements BoomJobClient {
     }
 
     @Override
+    public JobPlanExecuteService jobPlanExecuteService() {
+        return jobPlanExecuteService;
+    }
+
+    @Override
     public RegistryService registryService() {
         return registryService;
     }
@@ -204,12 +213,15 @@ public class SimpleBoomJobClient extends Lifecycle implements BoomJobClient {
         this.referRegister = new ReferenceConfig<>();
         this.referJob = new ReferenceConfig<>();
         this.referRegistry = new ReferenceConfig<>();
+        this.referJobPlan = new ReferenceConfig<>();
 
         this.referRegister.setTimeout(this.timeout);
         this.referJob.setTimeout(this.timeout);
+        this.referJobPlan.setTimeout(this.timeout);
 
         this.referRegister.setRetries(0);
         this.referJob.setRetries(0);
+        this.referJobPlan.setRetries(0);
 
         this.referRegister.setApplication(application);
         this.referRegister.setRegistry(registry);
@@ -223,9 +235,14 @@ public class SimpleBoomJobClient extends Lifecycle implements BoomJobClient {
         this.referRegistry.setRegistry(registry);
         this.referRegistry.setInterface(RegistryService.class);
 
+        this.referJobPlan.setApplication(application);
+        this.referJobPlan.setRegistry(registry);
+        this.referJobPlan.setInterface(JobPlanExecuteService.class);
+
         this.appRegisterService = cache.get(referRegister);
         this.jobExecuteService = cache.get(referJob);
         this.registryService = cache.get(referRegistry);
+        this.jobPlanExecuteService = cache.get(referJobPlan);
     }
 
     @Override

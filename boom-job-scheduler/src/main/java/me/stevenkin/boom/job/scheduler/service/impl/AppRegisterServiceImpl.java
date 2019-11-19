@@ -4,6 +4,8 @@ import com.alibaba.dubbo.config.annotation.Service;
 import lombok.extern.slf4j.Slf4j;
 import me.stevenkin.boom.job.common.dto.AppInfo;
 import me.stevenkin.boom.job.common.dto.RegisterResponse;
+import me.stevenkin.boom.job.common.enums.JobStatus;
+import me.stevenkin.boom.job.common.enums.JobType;
 import me.stevenkin.boom.job.common.po.App;
 import me.stevenkin.boom.job.common.po.Job;
 import me.stevenkin.boom.job.common.service.AppRegisterService;
@@ -35,6 +37,8 @@ public class AppRegisterServiceImpl implements AppRegisterService {
                 Job job = new Job();
                 job.setAppId(app.getId());
                 job.setJobClass(jobClass);
+                job.setStatus(JobStatus.OFFLINE.getCode());
+                job.setType(JobType.SIMPLE.getCode());
                 job.setCreateTime(LocalDateTime.now());
                 job.setUpdateTime(job.getCreateTime());
                 jobInfoDao.insert(job);

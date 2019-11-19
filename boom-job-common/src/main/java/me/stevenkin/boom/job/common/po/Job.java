@@ -12,6 +12,7 @@ import java.time.LocalDateTime;
 public class Job {
     private Long id;
     private String jobClass;
+    private Integer type;//job type, simple default
     private Integer status;
     private String schedulerId;
     private Long appId;

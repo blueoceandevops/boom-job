@@ -3,11 +3,10 @@ package me.stevenkin.boom.job.common.enums;
 import lombok.Getter;
 
 public enum JobType {
-    NOT_CONFIGURED(0, "not configured"),
 
-    SIMPLE(1, "simple"),
+    SIMPLE(0, "simple"),
 
-    CRON(2, "cron");
+    PLAN(1, "plan");
     @Getter
     private Integer code;
     @Getter

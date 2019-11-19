@@ -31,9 +31,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -113,10 +111,10 @@ public class JobExecutor {
         request.setSchedulerId(schedulerId);
         request.setBlacklist(blacklistDao.selectByJobId(jobId));
 
-        callProcessorAnWait(jobId, jobInstanceId, jobInstance, jobDetail, request, clientProcessor);
+        callProcessorAndWait(jobId, jobInstanceId, jobInstance, jobDetail, request, clientProcessor);
     }
 
-    private JobInstanceStatus callProcessorAnWait(Long jobId, Long jobInstanceId, JobInstance jobInstance, JobDetail jobDetail, JobFireRequest request, ClientProcessor clientProcessor) {
+    private JobInstanceStatus callProcessorAndWait(Long jobId, Long jobInstanceId, JobInstance jobInstance, JobDetail jobDetail, JobFireRequest request, ClientProcessor clientProcessor) {
         zkClient.createIfNotExists(PathKit.format(JOB_INSTANCE_PATH, jobId));
         JobInstanceNode node = new JobInstanceNode(jobInstance.getStatus(),
                 jobInstance.getStartTime(),
