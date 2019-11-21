@@ -71,7 +71,7 @@ public class JobAdminServiceImpl implements JobAdminService {
 
     @Override
     public Boolean triggerJob(Long jobId) {
-        return jobSchedulerService.triggerJob(jobId);
+        return jobSchedulerService.triggerJob(jobId) != null;
     }
 
     @Override

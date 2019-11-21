@@ -20,8 +20,13 @@ public class JobSchedulerServiceImpl implements JobSchedulerService {
     }
 
     @Override
-    public Boolean triggerJob(Long jobId) {
+    public Long triggerJob(Long jobId) {
         return jobManager.triggerJob(jobId);
+    }
+
+    @Override
+    public Long onlineAndTriggerJob(Long jobId) {
+        return jobManager.onlineAndTriggerJob(jobId);
     }
 
     @Override

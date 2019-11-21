@@ -22,7 +22,7 @@ public class ProxyJob implements Job {
     @Override
     public void execute(JobExecutionContext context) throws JobExecutionException {
         try {
-            jobExecutor.execute(jobDetail, clientProcessor, context);
+            jobExecutor.execute(jobDetail, clientProcessor);
         } catch (Exception e) {
             throw new JobExecutionException(e);
         }

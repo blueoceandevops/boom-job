@@ -75,6 +75,10 @@ public class JobManager extends Lifecycle {
         } catch (InterruptedException e) {
             log.error("happen error", e);
         }
+        return doOnlineJob(jobId);
+    }
+
+    private Boolean doOnlineJob(Long jobId) {
         if (jobCaches.containsKey(jobId)) {
             return Boolean.TRUE;
         }
@@ -90,15 +94,30 @@ public class JobManager extends Lifecycle {
         return Boolean.TRUE;
     }
 
-    public synchronized Boolean triggerJob(Long jobId){
+    public synchronized Long triggerJob(Long jobId){
         try {
             latch.await();
         } catch (InterruptedException e) {
             log.error("happen error", e);
         }
+        return doTriggerJob(jobId);
+    }
+
+    private Long doTriggerJob(Long jobId) {
         if (!jobCaches.containsKey(jobId))
-            return Boolean.FALSE;
+            return null;
         return jobCaches.get(jobId).trigger();
+    }
+
+    public synchronized Long onlineAndTriggerJob(Long jobId) {
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+            log.error("happen error", e);
+        }
+        if (!doOnlineJob(jobId))
+            return null;
+        return doTriggerJob(jobId);
     }
 
     @Transactional(rollbackFor = Exception.class)

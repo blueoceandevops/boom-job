@@ -8,6 +8,7 @@ import me.stevenkin.boom.job.common.zk.ZkClient;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 import java.util.Properties;
 
@@ -26,6 +27,16 @@ public class BoomJobConfig {
     private DubboConfig dubbo;
     private ZkConfig zk;
     private QuartzConfig quartz;
+    private ExecuteConfig execute;
+
+    @Bean
+    public ThreadPoolTaskExecutor executorService() {
+        ThreadPoolTaskExecutor taskExecutor = new ThreadPoolTaskExecutor();
+        taskExecutor.setCorePoolSize(execute.getExecuteThreadCount());
+        taskExecutor.setMaxPoolSize(execute.getExecuteThreadCount());
+        taskExecutor.setQueueCapacity(execute.getQueueSize());
+        return taskExecutor;
+    }
 
     @Bean(destroyMethod = "shutdown")
     public ZkClient zkClient() throws Exception {

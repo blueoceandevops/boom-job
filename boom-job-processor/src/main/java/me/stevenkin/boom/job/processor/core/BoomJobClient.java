@@ -6,7 +6,6 @@ import com.alibaba.dubbo.config.RegistryConfig;
 import com.alibaba.dubbo.registry.RegistryService;
 import me.stevenkin.boom.job.common.service.JobExecuteService;
 import me.stevenkin.boom.job.common.service.AppRegisterService;
-import me.stevenkin.boom.job.common.service.JobPlanExecuteService;
 import me.stevenkin.boom.job.common.zk.ZkClient;
 
 import java.util.concurrent.ExecutorService;
@@ -40,8 +39,6 @@ public interface BoomJobClient {
     AppRegisterService registerService();
 
     JobExecuteService jobExecuteService();
-
-    JobPlanExecuteService jobPlanExecuteService();
 
     RegistryService registryService();
 

@@ -79,16 +79,10 @@ public class ScheduledJob {
         return Boolean.TRUE;
     }
 
-    public Boolean trigger() {
+    public Long trigger() {
         if (isPaused)
-            return Boolean.FALSE;
-        try {
-            schedulers.getScheduler().triggerJob(buildJobKey(jobDetail.getJobKey()));
-            return Boolean.TRUE;
-        } catch (SchedulerException e) {
-            log.error("some error happen", e);
-            throw new ScheduleException(e);
-        }
+            return null;
+        return jobExecutor.execute(jobDetail, clientProcessor);
     }
 
     public Boolean pause() {
@@ -143,7 +137,6 @@ public class ScheduledJob {
     }
 
     private Trigger buildTrigger(me.stevenkin.boom.job.common.dto.JobDetail jobDetail) {
-        Job job = jobDetail.getJob();
         TriggerBuilder<Trigger> triggerBuilder = newTrigger();
 
         triggerBuilder.withIdentity(buildTriggerKey(jobDetail.getJobKey()));

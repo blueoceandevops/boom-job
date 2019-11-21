@@ -13,6 +13,7 @@ import me.stevenkin.boom.job.common.enums.JobFireResult;
 import me.stevenkin.boom.job.common.service.ClientProcessor;
 import me.stevenkin.boom.job.common.service.JobSchedulerService;
 
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -42,19 +43,43 @@ public class JobSchedulerClusterInvoker<T> extends FailfastClusterInvoker<T> {
                     throwables.add(e);
                 }
             }
+            //全部抛rpc exception
             if (throwables.size() == size) {
                 log.error("all provider is not alive " + loadbalance.getClass().getSimpleName() + " select from all providers " + invokers + " for service " + getInterface().getName() + " method " + invocation.getMethodName() + " on consumer " + NetUtils.getLocalHost() + " use dubbo version " + Version.getVersion() + ", but no luck to perform the invocation. Last error is: " + throwables.get(throwables.size() - 1).getMessage(), throwables.get(throwables.size() - 1).getCause() != null ? throwables.get(throwables.size() - 1).getCause() : throwables.get(throwables.size() - 1));
+                throw new RpcException();
+            }
+            List<Result> results1 = results.stream().filter(r -> !r.hasException()).collect(Collectors.toList());
+            //全部抛业务异常
+            if (results1.isEmpty()) {
+                return new RpcResult(results.get(0).getException());
+            }
+            List<Result> results2 = results1.stream().filter(r -> r.getValue() != null).collect(Collectors.toList());
+            if (method.equals("triggerJob")) {
+                if (results2.isEmpty()) {
+                    return new RpcResult();
+                }
+                if (results2.size() > 1) {
+                    return new RpcResult(new RuntimeException("trigger job must be unique"));
+                }
+                return new RpcResult(results2.get(0).getValue());
+            }
+            if (method.equals("onlineAndTriggerJob")) {
+                if (results2.isEmpty()) {
+                    return new RpcResult(new RuntimeException("onlineAndTrigger job must be not empty"));
+                }
+                if (results2.size() > 1) {
+                    return new RpcResult(new RuntimeException("onlineAndTrigger job must be unique"));
+                }
+                return new RpcResult(results2.get(0).getValue());
+            }
+            List<Result> results3 = results2.stream().filter(r -> Boolean.TRUE.equals(r.getValue())).collect(Collectors.toList());
+            if (results3.isEmpty()) {
                 return new RpcResult(Boolean.FALSE);
             }
-            List<Result> results1 = results.stream().filter(r -> Boolean.TRUE.equals(r.getValue())).collect(Collectors.toList());
-            if (results1.size() > 1) {
-                log.error("a biz exception happen, select from all providers " + invokers + " for service " + getInterface().getName() + " method " + invocation.getMethodName() + " on consumer " + NetUtils.getLocalHost() + " use dubbo version " + Version.getVersion() + " has multiple success, but only allow one success");
-                return new RpcResult(Boolean.FALSE);
+            if (results3.size() > 1) {
+                return new RpcResult(new RuntimeException("trigger job must be unique"));
             }
-            if (results1.size() == 1) {
-                return new RpcResult(Boolean.TRUE);
-            }
-            return new RpcResult(Boolean.FALSE);
+            return new RpcResult(Boolean.TRUE);
         }
         if (isProcessor(clazz, method, types)) {
             JobFireRequest request = (JobFireRequest) invocation.getArguments()[0];

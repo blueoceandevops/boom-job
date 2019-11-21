@@ -26,6 +26,7 @@ import me.stevenkin.boom.job.storage.dao.JobScheduleDao;
 import org.apache.zookeeper.data.Stat;
 import org.quartz.JobExecutionContext;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -49,13 +50,15 @@ public class JobExecutor {
     private BlacklistDao blacklistDao;
     @Autowired
     private ZkClient zkClient;
+    @Autowired
+    private ThreadPoolTaskExecutor taskExecutor;
     @Setter
     private String schedulerId;
     @Getter
     private CountDownLatch latch = new CountDownLatch(1);
 
     @Transactional(rollbackFor = Exception.class)
-    public void execute(JobDetail jobDetail, ClientProcessor clientProcessor, JobExecutionContext context) {
+    public Long execute(JobDetail jobDetail, ClientProcessor clientProcessor) {
         try {
             latch.await();
         } catch (InterruptedException e) {
@@ -66,7 +69,8 @@ public class JobExecutor {
         //when a job is scheduled by multiple servers, ensure only one can trigger success
         n = jobScheduleDao.triggerJob(jobId, schedulerId);
         if (n != 1) {
-            throw new RuntimeException("job" + jobId + " trigger failed");
+            log.error("job" + jobId + " trigger failed");
+            return null;
         }
         boolean allowConcurrent = jobDetail.getJobConfig().isAllowConcurrent();
         JobInstance jobInstance = new JobInstance();
@@ -84,7 +88,8 @@ public class JobExecutor {
             n = jobInstanceDao.insertJobInstanceOnlyAllowOneRunning(jobInstance);
         }
         if (n < 1) {
-            throw new RuntimeException("job" + jobId + " insert job instance failed");
+            log.error("job" + jobId + " insert job instance failed");
+            return null;
         }
         Long jobInstanceId = jobInstance.getId();
         String jobShardParam = jobDetail.getJobConfig().getShardParams();
@@ -111,7 +116,8 @@ public class JobExecutor {
         request.setSchedulerId(schedulerId);
         request.setBlacklist(blacklistDao.selectByJobId(jobId));
 
-        callProcessorAndWait(jobId, jobInstanceId, jobInstance, jobDetail, request, clientProcessor);
+        taskExecutor.submit(() -> callProcessorAndWait(jobId, jobInstanceId, jobInstance, jobDetail, request, clientProcessor));
+        return jobInstanceId;
     }
 
     private JobInstanceStatus callProcessorAndWait(Long jobId, Long jobInstanceId, JobInstance jobInstance, JobDetail jobDetail, JobFireRequest request, ClientProcessor clientProcessor) {
