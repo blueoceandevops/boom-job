@@ -116,16 +116,17 @@ public class JobExecutor {
         request.setSchedulerId(schedulerId);
         request.setBlacklist(blacklistDao.selectByJobId(jobId));
 
-        taskExecutor.submit(() -> callProcessorAndWait(jobId, jobInstanceId, jobInstance, jobDetail, request, clientProcessor));
-        return jobInstanceId;
-    }
-
-    private JobInstanceStatus callProcessorAndWait(Long jobId, Long jobInstanceId, JobInstance jobInstance, JobDetail jobDetail, JobFireRequest request, ClientProcessor clientProcessor) {
         zkClient.createIfNotExists(PathKit.format(JOB_INSTANCE_PATH, jobId));
         JobInstanceNode node = new JobInstanceNode(jobInstance.getStatus(),
                 jobInstance.getStartTime(),
                 jobInstance.getExpectedEndTime());
         zkClient.create(PathKit.format(JOB_INSTANCE_PATH, jobId, jobInstanceId), JSON.toJSON(node));
+
+        taskExecutor.submit(() -> callProcessorAndWait(jobId, jobInstanceId, jobInstance, jobDetail, request, clientProcessor));
+        return jobInstanceId;
+    }
+
+    private JobInstanceStatus callProcessorAndWait(Long jobId, Long jobInstanceId, JobInstance jobInstance, JobDetail jobDetail, JobFireRequest request, ClientProcessor clientProcessor) {
         Holder<JobInstanceStatus> holder = new Holder<>();
         holder.setData(JobInstanceStatus.RUNNING);
         CountDownLatch latch1 = new CountDownLatch(1);
@@ -158,11 +159,11 @@ public class JobExecutor {
 
         if (holder.getData() == JobInstanceStatus.RUNNING || holder.getData() == JobInstanceStatus.TIMEOUT) {
             jobInstanceDao.updateJobInstanceStatus(jobInstanceId, JobInstanceStatus.RUNNING.getCode(), JobInstanceStatus.TIMEOUT.getCode());
+            holder.setData(JobInstanceStatus.TIMEOUT);
         }
 
         zkClient.delete(PathKit.format(JOB_INSTANCE_PATH, jobId, jobInstanceId));
         return holder.getData();
-
     }
 
 }
