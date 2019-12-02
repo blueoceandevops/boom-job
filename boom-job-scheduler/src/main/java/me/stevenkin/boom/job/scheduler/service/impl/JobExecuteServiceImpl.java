@@ -6,6 +6,7 @@ import com.alibaba.fastjson.JSONObject;
 import lombok.extern.slf4j.Slf4j;
 import me.stevenkin.boom.job.common.dto.*;
 import me.stevenkin.boom.job.common.enums.JobInstanceShardStatus;
+import me.stevenkin.boom.job.common.exception.ZkException;
 import me.stevenkin.boom.job.common.kit.NameKit;
 import me.stevenkin.boom.job.common.kit.PathKit;
 import me.stevenkin.boom.job.common.po.JobInstance;
@@ -89,7 +90,13 @@ public class JobExecuteServiceImpl implements JobExecuteService {
             }
             int n = jobInstanceDao.updateJobInstanceStatus(jobInstance, 0, status);
             if (n > 0) {
-                String data = new String(zkClient.get(PathKit.format(JOB_INSTANCE_PATH, jobInstance1.getJobId(), jobInstance)));
+                //可能这时节点已经因任务执行超时被删除
+                String data = null;
+                try {
+                    data = new String(zkClient.get(PathKit.format(JOB_INSTANCE_PATH, jobInstance1.getJobId(), jobInstance)));
+                } catch (ZkException e) {
+                    log.warn("node is not exist, the job runtime instance is timeout", e);
+                }
                 if (!StringUtils.isBlank(data)) {
                     JobInstanceNode node = JSON.parseObject(data, JobInstanceNode.class);
                     JobInstanceNode node1 = new JobInstanceNode();
