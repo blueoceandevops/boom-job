@@ -146,8 +146,8 @@ public class JobExecutor {
         try {
             clientProcessor.fireJob(request);
         } catch (RpcException e) {
-            //ignore this exception
-            //TODO 报RPC异常，有可能没有一个执行机在执行这个job实例， 就需要一个定时任务把超时的job instance节点置为超时状态
+            //TODO 告警
+            //TODO 报RPC异常，有可能执行机全都挂了,就需要一个定时任务把超时的job instance节点置为超时状态
             //TODO 定时任务主要做检查一个正在运行状态的zk任务实例节点有没有超时，如果超时，再等待一段时间检查节点有没有被删除，如果没有就说明job调度机已宕机则删除节点
         }
 
@@ -158,8 +158,12 @@ public class JobExecutor {
         }
 
         if (holder.getData() == JobInstanceStatus.RUNNING || holder.getData() == JobInstanceStatus.TIMEOUT) {
-            jobInstanceDao.updateJobInstanceStatus(jobInstanceId, JobInstanceStatus.RUNNING.getCode(), JobInstanceStatus.TIMEOUT.getCode());
-            holder.setData(JobInstanceStatus.TIMEOUT);
+            int n = jobInstanceDao.updateJobInstanceStatus(jobInstanceId, JobInstanceStatus.RUNNING.getCode(), JobInstanceStatus.TIMEOUT.getCode());
+            if (n > 0) {
+                holder.setData(JobInstanceStatus.TIMEOUT);
+            } else {
+                holder.setData(JobInstanceStatus.fromCode(jobInstanceDao.selectById(jobInstanceId).getStatus()));
+            }
         }
 
         zkClient.delete(PathKit.format(JOB_INSTANCE_PATH, jobId, jobInstanceId));

@@ -7,7 +7,8 @@ public enum JobInstanceStatus {
     RUNNING(0, "running"),
     SUCCESS(1, "success"),
     FAILED(2, "failed"),
-    TIMEOUT(3, "timeout");
+    TIMEOUT(3, "timeout"),
+    TERMINATE(4, "terminate");
     @Getter
     private Integer code;
     @Getter

@@ -6,6 +6,7 @@ import com.alibaba.fastjson.JSONObject;
 import lombok.extern.slf4j.Slf4j;
 import me.stevenkin.boom.job.common.dto.*;
 import me.stevenkin.boom.job.common.enums.JobInstanceShardStatus;
+import me.stevenkin.boom.job.common.enums.JobInstanceStatus;
 import me.stevenkin.boom.job.common.exception.ZkException;
 import me.stevenkin.boom.job.common.kit.NameKit;
 import me.stevenkin.boom.job.common.kit.PathKit;
@@ -79,6 +80,8 @@ public class JobExecuteServiceImpl implements JobExecuteService {
         List<JobInstanceShard> shards = jobInstanceShardDao.selectByJobInstanceId(jobInstance);
         long count = shards.stream().filter(s -> s.getStatus() != 0).count();
         JobInstance jobInstance1 = jobInstanceDao.selectById(jobInstance);
+        if (JobInstanceStatus.fromCode(jobInstance1.getStatus()) != JobInstanceStatus.RUNNING)
+            return true;
         boolean isFinished = jobInstance1.getShardCount() == count;
         if (isFinished) {
             boolean isFailed = shards.stream().anyMatch(s -> s.getStatus() == 2 || s.getStatus() == 3);
@@ -90,12 +93,11 @@ public class JobExecuteServiceImpl implements JobExecuteService {
             }
             int n = jobInstanceDao.updateJobInstanceStatus(jobInstance, 0, status);
             if (n > 0) {
-                //可能这时节点已经因任务执行超时被删除
                 String data = null;
                 try {
                     data = new String(zkClient.get(PathKit.format(JOB_INSTANCE_PATH, jobInstance1.getJobId(), jobInstance)));
                 } catch (ZkException e) {
-                    log.warn("node is not exist, the job runtime instance is timeout", e);
+                    log.warn("node is not exist, the job runtime instance node is removed", e);
                 }
                 if (!StringUtils.isBlank(data)) {
                     JobInstanceNode node = JSON.parseObject(data, JobInstanceNode.class);
