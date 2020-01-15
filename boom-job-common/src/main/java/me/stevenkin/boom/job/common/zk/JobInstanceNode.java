@@ -10,6 +10,8 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 public class JobInstanceNode {
+    private Long jobId;
+    private Long jobInstanceId;
     private Integer status;
     private LocalDateTime startTime;
     private LocalDateTime expectedEndTime;

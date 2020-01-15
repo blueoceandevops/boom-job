@@ -11,20 +11,15 @@ import me.stevenkin.boom.job.common.enums.JobFireResult;
 import me.stevenkin.boom.job.common.kit.URLKit;
 import me.stevenkin.boom.job.common.service.ClientProcessor;
 import me.stevenkin.boom.job.common.service.JobExecuteService;
-import me.stevenkin.boom.job.common.service.ShardExecuteService;
 import me.stevenkin.boom.job.common.support.Lifecycle;
-import me.stevenkin.boom.job.common.zk.ZkClient;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Queue;
+import java.util.*;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 
 @Slf4j
 public class SimpleClientProcessor extends Lifecycle implements ClientProcessor {
@@ -51,6 +46,8 @@ public class SimpleClientProcessor extends Lifecycle implements ClientProcessor 
     private URL serviceUrl;
 
     private URL configUrl;
+
+    private Map<Long, Map<Long, Future<?>>> map;
 
     public SimpleClientProcessor(BoomJobClient jobClient) {
         this.jobClient = jobClient;
@@ -85,19 +82,20 @@ public class SimpleClientProcessor extends Lifecycle implements ClientProcessor 
         if (job == null) {
             return new JobFireResponse(JobFireResult.FIRE_FAILED, clients);
         }
-        String jobId = jobId(request.getJobClass());
+        String jobKey = jobKey(request.getJobClass());
         Long jobInstanceId = request.getJobInstanceId();
         List<Long> jobShardIds = request.getJobShardIds();
         Queue<Long> shardIds = new LinkedList<>();
         shardIds.addAll(jobShardIds);
-        executor.submit(() -> {
-            log.info("service {} is fired", jobId);
+
+        Future<?> future = executor.submit(() -> {
+            log.info("service {} is fired", jobKey);
             while (!jobExecuteService.checkJobInstanceIsFinish(jobInstanceId)) {
                 Long id;
                 while ((id = shardIds.poll()) != null) {
                     JobInstanceShardDto jobInstanceShardDto = jobExecuteService.fetchOneShard(new FetchShardRequest(id, jobClient.clientId()));
                     if (jobInstanceShardDto != null) {
-                        jobExecuteService.reportJobExecResult(executeJobShard(job, jobId, jobInstanceShardDto));
+                        jobExecuteService.reportJobExecResult(executeJobShard(job, jobKey, jobInstanceShardDto));
                     }
                 }
                 shardIds.addAll(jobExecuteService.fetchMoreShardIds(jobInstanceId));
@@ -140,7 +138,7 @@ public class SimpleClientProcessor extends Lifecycle implements ClientProcessor 
         return jobContext;
     }
 
-    private String jobId(String jobClass) {
+    private String jobKey(String jobClass) {
         return appKey + "_" + jobClass;
     }
 

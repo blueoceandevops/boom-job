@@ -4,6 +4,7 @@ import lombok.Data;
 import lombok.Getter;
 
 public enum JobInstanceStatus {
+    NEW(-1, "new"),
     RUNNING(0, "running"),
     SUCCESS(1, "success"),
     FAILED(2, "failed"),

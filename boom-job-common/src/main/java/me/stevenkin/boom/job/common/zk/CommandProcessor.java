@@ -9,6 +9,8 @@ import org.apache.curator.framework.recipes.cache.NodeCache;
 import org.apache.zookeeper.data.Stat;
 
 import java.util.List;
+import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 @Slf4j
 public class CommandProcessor extends Lifecycle {
@@ -43,6 +45,13 @@ public class CommandProcessor extends Lifecycle {
             public void onDelete() {
 
             }
+
+            @Override
+            public NodeListener add(Predicate<?> predicate, Consumer<?> action) {
+                return null;
+            }
+
+
         });
         nodeCache.start();
         initProcess();
