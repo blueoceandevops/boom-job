@@ -188,9 +188,7 @@ public class JobExecutor {
                         jobInstance.getExpectedEndTime()));
             }
         }
-
-        /*
-        zkClient.delete(PathKit.format(JOB_INSTANCE_PATH, jobId, jobInstanceId));*/
+        // TODO remove zk job instance node
     }
 
 }
