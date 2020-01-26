@@ -79,10 +79,11 @@ public class ScheduledJob {
         return Boolean.TRUE;
     }
 
-    public Long trigger() {
+    public Boolean trigger() {
         if (isPaused)
-            return null;
-        return jobExecutor.execute(jobDetail, clientProcessor);
+            return Boolean.FALSE;
+        jobExecutor.execute(jobDetail, clientProcessor);
+        return Boolean.TRUE;
     }
 
     public Boolean pause() {

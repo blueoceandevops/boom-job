@@ -94,7 +94,7 @@ public class JobManager extends Lifecycle {
         return Boolean.TRUE;
     }
 
-    public synchronized Long triggerJob(Long jobId){
+    public synchronized Boolean triggerJob(Long jobId){
         try {
             latch.await();
         } catch (InterruptedException e) {
@@ -103,20 +103,20 @@ public class JobManager extends Lifecycle {
         return doTriggerJob(jobId);
     }
 
-    private Long doTriggerJob(Long jobId) {
+    private Boolean doTriggerJob(Long jobId) {
         if (!jobCaches.containsKey(jobId))
-            return null;
+            return Boolean.FALSE;
         return jobCaches.get(jobId).trigger();
     }
 
-    public synchronized Long onlineAndTriggerJob(Long jobId) {
+    public synchronized Boolean onlineAndTriggerJob(Long jobId) {
         try {
             latch.await();
         } catch (InterruptedException e) {
             log.error("happen error", e);
         }
         if (!doOnlineJob(jobId))
-            return null;
+            return Boolean.FALSE;
         return doTriggerJob(jobId);
     }
 

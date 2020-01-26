@@ -17,6 +17,7 @@ import me.stevenkin.boom.job.common.kit.PathKit;
 import me.stevenkin.boom.job.common.po.JobInstance;
 import me.stevenkin.boom.job.common.po.JobInstanceShard;
 import me.stevenkin.boom.job.common.service.ClientProcessor;
+import me.stevenkin.boom.job.common.support.ActionOnCondition;
 import me.stevenkin.boom.job.common.zk.JobInstanceNode;
 import me.stevenkin.boom.job.common.zk.JobInstanceNodeListener;
 import me.stevenkin.boom.job.common.zk.NodeListener;
@@ -26,6 +27,7 @@ import me.stevenkin.boom.job.storage.dao.JobInstanceDao;
 import me.stevenkin.boom.job.storage.dao.JobInstanceShardDao;
 import me.stevenkin.boom.job.storage.dao.JobScheduleDao;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.curator.framework.recipes.cache.NodeCache;
 import org.apache.zookeeper.data.Stat;
 import org.quartz.JobExecutionContext;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,13 +35,13 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
@@ -57,15 +59,15 @@ public class JobExecutor {
     private BlacklistDao blacklistDao;
     @Autowired
     private ZkClient zkClient;
-    @Autowired
-    private ThreadPoolTaskExecutor taskExecutor;
     @Setter
     private String schedulerId;
     @Getter
     private CountDownLatch latch = new CountDownLatch(1);
 
+    private ConcurrentMap<Long, NodeCache> nodeCacheMap = new ConcurrentHashMap<>();
+
     @Transactional(rollbackFor = Exception.class)
-    public Long execute(JobDetail jobDetail, ClientProcessor clientProcessor) {
+    public void execute(JobDetail jobDetail, ClientProcessor clientProcessor) {
         try {
             latch.await();
         } catch (InterruptedException e) {
@@ -77,7 +79,7 @@ public class JobExecutor {
         n = jobScheduleDao.triggerJob(jobId, schedulerId);
         if (n != 1) {
             log.error("job" + jobId + " trigger failed");
-            return null;
+            return;
         }
         boolean allowConcurrent = jobDetail.getJobConfig().isAllowConcurrent();
         JobInstance jobInstance = new JobInstance();
@@ -96,7 +98,7 @@ public class JobExecutor {
         }
         if (n < 1) {
             log.error("job" + jobId + " insert job instance failed");
-            return null;
+            return;
         }
         Long jobInstanceId = jobInstance.getId();
         String jobShardParam = jobDetail.getJobConfig().getShardParams();
@@ -130,38 +132,67 @@ public class JobExecutor {
                 jobInstance.getExpectedEndTime());
         zkClient.create(PathKit.format(JOB_INSTANCE_PATH, jobId, jobInstanceId), JSON.toJSON(node));
 
-        taskExecutor.submit(() -> callProcessorAndWait(jobId, jobInstanceId, jobInstance, jobDetail, request, clientProcessor));
-        return jobInstanceId;
+        callProcessorAndWait(jobId, jobInstanceId, jobInstance, jobDetail, request, clientProcessor);
     }
 
     private void callProcessorAndWait(Long jobId, Long jobInstanceId, JobInstance jobInstance, JobDetail jobDetail, JobFireRequest request, ClientProcessor clientProcessor) {
         CountDownLatch latch1 = new CountDownLatch(1);
-        zkClient.registerNodeCacheListener(PathKit.format(JOB_INSTANCE_PATH, jobId, jobInstanceId), new JobInstanceNodeListener()
-                .add(o -> {
-                    JobInstanceNode node = (JobInstanceNode) o;
-                    JobInstanceStatus status = JobInstanceStatus.fromCode(node.getStatus());
-                    return status == JobInstanceStatus.SUCCESS || status == JobInstanceStatus.FAILED;
-                }, o -> latch1.countDown())
-                .add(o -> {
-                    JobInstanceNode node = (JobInstanceNode) o;
-                    JobInstanceStatus status = JobInstanceStatus.fromCode(node.getStatus());
-                    return status == JobInstanceStatus.RUNNING;
-                }, o -> {
-                    JobInstanceNode node = (JobInstanceNode) o;
-                    jobInstanceDao.updateJobInstanceStatus(node.getJobInstanceId(), JobInstanceStatus.NEW.getCode(), JobInstanceStatus.RUNNING.getCode());
+        NodeCache nodeCache = zkClient.registerNodeCacheListener(PathKit.format(JOB_INSTANCE_PATH, jobId, jobInstanceId), new JobInstanceNodeListener()
+                .add(new ActionOnCondition<JobInstanceNode, JobInstanceNode>() {
+                    @Override
+                    public boolean test(JobInstanceNode jobInstanceNode) {
+                        JobInstanceStatus status = JobInstanceStatus.fromCode(jobInstanceNode.getStatus());
+                        return status == JobInstanceStatus.SUCCESS || status == JobInstanceStatus.FAILED;
+                    }
+
+                    @Override
+                    public void action(JobInstanceNode jobInstanceNode) {
+                        latch1.countDown();
+                        afterExecute(jobInstanceNode);
+                    }
+                }).add(new ActionOnCondition<JobInstanceNode, JobInstanceNode>() {
+                    @Override
+                    public boolean test(JobInstanceNode jobInstanceNode) {
+                        JobInstanceStatus status = JobInstanceStatus.fromCode(jobInstanceNode.getStatus());
+                        return status == JobInstanceStatus.RUNNING;
+                    }
+
+                    @Override
+                    public void action(JobInstanceNode jobInstanceNode) {
+                        jobInstanceDao.updateJobInstanceStatus(jobInstanceNode.getJobInstanceId(), JobInstanceStatus.NEW.getCode(), JobInstanceStatus.RUNNING.getCode());
+                    }
+                }).add(new ActionOnCondition<JobInstanceNode, JobInstanceNode>() {
+                    @Override
+                    public boolean test(JobInstanceNode jobInstanceNode) {
+                        JobInstanceStatus status = JobInstanceStatus.fromCode(jobInstanceNode.getStatus());
+                        return status == JobInstanceStatus.TIMEOUT;
+                    }
+
+                    @Override
+                    public void action(JobInstanceNode jobInstanceNode) {
+                        afterExecute(jobInstanceNode);
+                    }
+                }).add(new ActionOnCondition<JobInstanceNode, JobInstanceNode>() {
+                    @Override
+                    public boolean test(JobInstanceNode jobInstanceNode) {
+                        JobInstanceStatus status = JobInstanceStatus.fromCode(jobInstanceNode.getStatus());
+                        return status == JobInstanceStatus.TERMINATE;
+                    }
+
+                    @Override
+                    public void action(JobInstanceNode jobInstanceNode) {
+                        latch1.countDown();
+                        afterExecute(jobInstanceNode);
+                    }
                 })
-                .add(o -> {
-                    JobInstanceNode node = (JobInstanceNode) o;
-                    JobInstanceStatus status = JobInstanceStatus.fromCode(node.getStatus());
-                    return status == JobInstanceStatus.TIMEOUT;
-                }, o -> {
-                })
-                .add(o -> {
-                    JobInstanceNode node = (JobInstanceNode) o;
-                    JobInstanceStatus status = JobInstanceStatus.fromCode(node.getStatus());
-                    return status == JobInstanceStatus.TERMINATE;
-                }, o -> latch1.countDown())
         );
+        nodeCacheMap.putIfAbsent(jobInstanceId, nodeCache);
+        try {
+            nodeCache.start();
+        } catch (Exception e) {
+            log.error("happen error", e);
+            throw new RuntimeException(e);
+        }
 
         try {
             clientProcessor.fireJob(request);
@@ -181,14 +212,25 @@ public class JobExecutor {
         // 超时
         if (endTime - startTime > jobDetail.getJobConfig().getTimeout()) {
             int n = jobInstanceDao.updateJobInstanceStatus(jobInstanceId, JobInstanceStatus.RUNNING.getCode(), JobInstanceStatus.TIMEOUT.getCode());
-            // 更新job实例状态成功，说明已超时，就争取终止正在运行的执行器
+            // 更新job实例状态成功，说明已超时，就尝试终止正在运行的执行器
             if (n > 0) {
                 zkClient.update(PathKit.format(JOB_INSTANCE_PATH, jobId, jobInstanceId), new JobInstanceNode(jobId, jobInstanceId, JobInstanceStatus.TIMEOUT.getCode(),
                         jobInstance.getStartTime(),
                         jobInstance.getExpectedEndTime()));
             }
         }
-        // TODO remove zk job instance node
+        // TODO 定时任务移除zk job instance节点
+    }
+
+    private void afterExecute(JobInstanceNode jobInstanceNode) {
+        NodeCache nodeCache1;
+        if ((nodeCache1 = nodeCacheMap.get(jobInstanceNode.getJobInstanceId())) != null) {
+            try {
+                nodeCache1.close();
+            } catch (IOException e) {
+                log.error("happen error", e);
+            }
+        }
     }
 
 }

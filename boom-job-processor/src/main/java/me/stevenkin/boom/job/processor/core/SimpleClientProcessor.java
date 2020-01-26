@@ -15,13 +15,16 @@ import me.stevenkin.boom.job.common.kit.PathKit;
 import me.stevenkin.boom.job.common.kit.URLKit;
 import me.stevenkin.boom.job.common.service.ClientProcessor;
 import me.stevenkin.boom.job.common.service.JobExecuteService;
+import me.stevenkin.boom.job.common.support.ActionOnCondition;
 import me.stevenkin.boom.job.common.support.Lifecycle;
 import me.stevenkin.boom.job.common.zk.JobInstanceNode;
 import me.stevenkin.boom.job.common.zk.JobInstanceNodeListener;
 import me.stevenkin.boom.job.common.zk.ZkClient;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.curator.framework.recipes.cache.NodeCache;
 import org.springframework.beans.BeanUtils;
 
+import java.io.IOException;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -57,7 +60,9 @@ public class SimpleClientProcessor extends Lifecycle implements ClientProcessor 
 
     private URL configUrl;
 
-    private ConcurrentMap<Long, ConcurrentMap<Long, Future<?>>> map;
+    private ConcurrentMap<Long, ConcurrentMap<Long, Future<?>>> futureMap;
+
+    private ConcurrentMap<Long, NodeCache> nodeCacheMap;
 
     public SimpleClientProcessor(BoomJobClient jobClient) {
         this.jobClient = jobClient;
@@ -77,7 +82,8 @@ public class SimpleClientProcessor extends Lifecycle implements ClientProcessor 
 
         latch = new CountDownLatch(1);
 
-        map = new ConcurrentHashMap<>();
+        futureMap = new ConcurrentHashMap<>();
+        nodeCacheMap = new ConcurrentHashMap<>();
     }
 
     @Override
@@ -102,50 +108,67 @@ public class SimpleClientProcessor extends Lifecycle implements ClientProcessor 
         Queue<Long> shardIds = new LinkedList<>();
         shardIds.addAll(jobShardIds);
 
-        zkClient.registerNodeCacheListener(PathKit.format(JOB_INSTANCE_PATH, jobId, jobInstanceId), new JobInstanceNodeListener().add(
-                o -> {
-                    JobInstanceNode node = (JobInstanceNode) o;
-                    JobInstanceStatus status = JobInstanceStatus.fromCode(node.getStatus());
-                    return status == JobInstanceStatus.SUCCESS || status == JobInstanceStatus.FAILED;
-                }, o -> {
-
-                }
-        ).add(
-                o -> {
-                    JobInstanceNode node = (JobInstanceNode) o;
-                    JobInstanceStatus status = JobInstanceStatus.fromCode(node.getStatus());
-                    return status == JobInstanceStatus.RUNNING;
-                }, o -> {
-
-                }
-        ).add(
-                o -> {
-                    JobInstanceNode node = (JobInstanceNode) o;
-                    JobInstanceStatus status = JobInstanceStatus.fromCode(node.getStatus());
-                    return status == JobInstanceStatus.TIMEOUT;
-                }, o -> {
-                    JobInstanceNode node = (JobInstanceNode) o;
-                    ConcurrentMap<Long, Future<?>> map1;
-                    Future<?> future = null;
-                    if ((map1 = map.get(node.getJobId())) != null && (future = map1.remove(node.getJobInstanceId())) != null) {
-                        future.cancel(true);
-                        zkClient.delete(PathKit.format(JOB_INSTANCE_PATH, jobId, jobInstanceId));
+        NodeCache nodeCache = zkClient.registerNodeCacheListener(PathKit.format(JOB_INSTANCE_PATH, jobId, jobInstanceId), new JobInstanceNodeListener()
+                .add(new ActionOnCondition<JobInstanceNode, JobInstanceNode>() {
+                    @Override
+                    public boolean test(JobInstanceNode jobInstanceNode) {
+                        JobInstanceStatus status = JobInstanceStatus.fromCode(jobInstanceNode.getStatus());
+                        return status == JobInstanceStatus.SUCCESS || status == JobInstanceStatus.FAILED;
                     }
-                }
-        ).add(
-                o -> {
-                    JobInstanceNode node = (JobInstanceNode) o;
-                    JobInstanceStatus status = JobInstanceStatus.fromCode(node.getStatus());
-                    return status == JobInstanceStatus.TERMINATE;
-                }, o -> {
-                    JobInstanceNode node = (JobInstanceNode) o;
-                    ConcurrentMap<Long, Future<?>> map1;
-                    Future<?> future = null;
-                    if ((map1 = map.get(node.getJobId())) != null && (future = map1.remove(node.getJobInstanceId())) != null) {
-                        future.cancel(true);
+
+                    @Override
+                    public void action(JobInstanceNode jobInstanceNode) {
+                        NodeCache nodeCache1;
+                        if ((nodeCache1 = nodeCacheMap.get(jobInstanceNode.getJobInstanceId())) != null) {
+                            try {
+                                nodeCache1.close();
+                            } catch (IOException e) {
+                                log.error("happen error", e);
+                            }
+                        }
                     }
-                }
-        ));
+                }).add(new ActionOnCondition<JobInstanceNode, JobInstanceNode>() {
+                    @Override
+                    public boolean test(JobInstanceNode jobInstanceNode) {
+                        JobInstanceStatus status = JobInstanceStatus.fromCode(jobInstanceNode.getStatus());
+                        return status == JobInstanceStatus.RUNNING;
+                    }
+
+                    @Override
+                    public void action(JobInstanceNode jobInstanceNode) {
+
+                    }
+                }).add(new ActionOnCondition<JobInstanceNode, JobInstanceNode>() {
+                    @Override
+                    public boolean test(JobInstanceNode jobInstanceNode) {
+                        JobInstanceStatus status = JobInstanceStatus.fromCode(jobInstanceNode.getStatus());
+                        return status == JobInstanceStatus.TIMEOUT;
+                    }
+
+                    @Override
+                    public void action(JobInstanceNode jobInstanceNode) {
+                        afterJobExecute(jobInstanceNode);
+                    }
+                }).add(new ActionOnCondition<JobInstanceNode, JobInstanceNode>() {
+                    @Override
+                    public boolean test(JobInstanceNode jobInstanceNode) {
+                        JobInstanceStatus status = JobInstanceStatus.fromCode(jobInstanceNode.getStatus());
+                        return status == JobInstanceStatus.TERMINATE;
+                    }
+
+                    @Override
+                    public void action(JobInstanceNode jobInstanceNode) {
+                        afterJobExecute(jobInstanceNode);
+                    }
+                })
+        );
+        try {
+            nodeCache.start();
+        } catch (Exception e) {
+            log.error("happen error", e);
+            return new JobFireResponse(JobFireResult.FIRE_FAILED, clients);
+        }
+        nodeCacheMap.putIfAbsent(jobInstanceId, nodeCache);
 
         Future<?> future = executor.submit(() -> {
             log.info("service {} is fired", jobKey);
@@ -160,7 +183,7 @@ public class SimpleClientProcessor extends Lifecycle implements ClientProcessor 
                 shardIds.addAll(jobExecuteService.fetchMoreShardIds(jobInstanceId));
             }
         });
-        ConcurrentMap<Long, Future<?>> map1 = map.computeIfAbsent(jobId, id -> new ConcurrentHashMap<>());
+        ConcurrentMap<Long, Future<?>> map1 = futureMap.computeIfAbsent(jobId, id -> new ConcurrentHashMap<>());
         map1.putIfAbsent(jobInstanceId, future);
         String data = null;
         try {
@@ -203,6 +226,22 @@ public class SimpleClientProcessor extends Lifecycle implements ClientProcessor 
         jobExecReport.setJobResult(result);
         jobExecReport.setException(error);
         return jobExecReport;
+    }
+
+    private void afterJobExecute(JobInstanceNode jobInstanceNode) {
+        ConcurrentMap<Long, Future<?>> map1;
+        Future<?> future;
+        if ((map1 = futureMap.get(jobInstanceNode.getJobId())) != null && (future = map1.remove(jobInstanceNode.getJobInstanceId())) != null) {
+            future.cancel(true);
+        }
+        NodeCache nodeCache1;
+        if ((nodeCache1 = nodeCacheMap.get(jobInstanceNode.getJobInstanceId())) != null) {
+            try {
+                nodeCache1.close();
+            } catch (IOException e) {
+                log.error("happen error", e);
+            }
+        }
     }
 
     private JobContext buildJobContext(JobInstanceShardDto dto) {

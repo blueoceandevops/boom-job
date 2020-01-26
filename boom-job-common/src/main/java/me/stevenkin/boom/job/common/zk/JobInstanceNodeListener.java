@@ -1,19 +1,18 @@
 package me.stevenkin.boom.job.common.zk;
 
 import com.alibaba.fastjson.JSON;
+import me.stevenkin.boom.job.common.support.ActionOnCondition;
 import org.apache.zookeeper.data.Stat;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.function.Consumer;
-import java.util.function.Predicate;
+import java.util.ArrayList;
+import java.util.List;
 
-public class JobInstanceNodeListener implements NodeListener {
-    private Map<Predicate<JobInstanceNode>, Consumer<JobInstanceNode>> map = new HashMap<>();
+public class JobInstanceNodeListener implements NodeListener<JobInstanceNode, JobInstanceNode> {
+    private List<ActionOnCondition<JobInstanceNode, JobInstanceNode>> actionOnConditions = new ArrayList<>();
     @Override
     public void onChange(String path, Stat stat, byte[] data) {
         JobInstanceNode node = JSON.parseObject(new String(data), JobInstanceNode.class);
-        map.entrySet().stream().filter(e -> e.getKey().test(node)).map(Map.Entry::getValue).forEach(c -> c.accept(node));
+        actionOnConditions.stream().filter(ac -> ac.test(node)).forEach(ac -> ac.action(node));
     }
 
     @Override
@@ -22,8 +21,8 @@ public class JobInstanceNodeListener implements NodeListener {
     }
 
     @Override
-    public NodeListener add(Predicate<?> predicate, Consumer<?> action) {
-        map.put((Predicate<JobInstanceNode>) predicate, (Consumer<JobInstanceNode>) action);
+    public JobInstanceNodeListener add(ActionOnCondition<JobInstanceNode, JobInstanceNode> actionOnCondition) {
+        actionOnConditions.add(actionOnCondition);
         return this;
     }
 }
