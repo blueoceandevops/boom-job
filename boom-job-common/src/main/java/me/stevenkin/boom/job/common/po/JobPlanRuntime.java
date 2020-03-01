@@ -14,4 +14,11 @@ public class JobPlanRuntime {
     private Long jobId;
     private Long jobInstanceId;
     private JobInstanceStatus status;
+
+    public JobPlanRuntime(Long planJobInstanceId, Long jobId, Long jobInstanceId, JobInstanceStatus status) {
+        this.planJobInstanceId = planJobInstanceId;
+        this.jobId = jobId;
+        this.jobInstanceId = jobInstanceId;
+        this.status = status;
+    }
 }

@@ -33,6 +33,7 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.*;
 
 @Component
@@ -126,12 +127,23 @@ public class JobExecutor {
                 LocalDateTime.now(),
                 jobInstance.getStartTime(),
                 jobInstance.getExpectedEndTime());
-        zkClient.create(PathKit.format(JOB_INSTANCE_PATH, jobId, jobInstanceId), JSON.toJSON(node));
+        zkClient.create(PathKit.format(JOB_INSTANCE_PATH, jobId, jobInstanceId), JSON.toJSONString(node));
+        if (jobType == JobType.PLAN) {
+            List<JobPlanRuntime> runtimes = new ArrayList<>();
+            zkClient.create(PathKit.format(JOB_INSTANCE_PATH, jobId, jobInstanceId, RUNTIME_PATH), JSON.toJSONString(runtimes));
+        }
 
-        callProcessorAndWait(jobId, jobInstanceId, jobInstance, jobDetail, request, clientProcessor);
+        callProcessorAndWait(jobId, jobInstanceId, jobInstance, jobDetail, request, type, clientProcessor, attach);
     }
 
-    private void callProcessorAndWait(Long jobId, Long jobInstanceId, JobInstance jobInstance, JobDetail jobDetail, JobFireRequest request, ClientProcessor clientProcessor) {
+    private void callProcessorAndWait(Long jobId,
+                                      Long jobInstanceId,
+                                      JobInstance jobInstance,
+                                      JobDetail jobDetail,
+                                      JobFireRequest request,
+                                      JobTriggerType triggerType,
+                                      ClientProcessor clientProcessor,
+                                      Attachment attach) {
         CountDownLatch latch1 = new CountDownLatch(1);
         NodeCache nodeCache = zkClient.registerNodeCacheListener(PathKit.format(JOB_INSTANCE_PATH, jobId, jobInstanceId), new JobInstanceNodeListener()
                 .add(new ActionOnCondition<JobInstanceNode, JobInstanceNode>() {
@@ -144,6 +156,7 @@ public class JobExecutor {
                     @Override
                     public void action(JobInstanceNode jobInstanceNode) {
                         latch1.countDown();
+                        jobExecRuntime(triggerType, jobInstanceNode, attach);
                         afterExecute(jobInstanceNode);
                     }
                 }).add(new ActionOnCondition<JobInstanceNode, JobInstanceNode>() {
@@ -156,6 +169,7 @@ public class JobExecutor {
                     @Override
                     public void action(JobInstanceNode jobInstanceNode) {
                         jobInstanceDao.updateJobInstanceStatus(jobInstanceNode.getJobInstanceId(), JobInstanceStatus.NEW.getCode(), JobInstanceStatus.RUNNING.getCode());
+                        jobExecRuntime(triggerType, jobInstanceNode, attach);
                     }
                 }).add(new ActionOnCondition<JobInstanceNode, JobInstanceNode>() {
                     @Override
@@ -166,6 +180,7 @@ public class JobExecutor {
 
                     @Override
                     public void action(JobInstanceNode jobInstanceNode) {
+                        jobExecRuntime(triggerType, jobInstanceNode, attach);
                         afterExecute(jobInstanceNode);
                     }
                 }).add(new ActionOnCondition<JobInstanceNode, JobInstanceNode>() {
@@ -178,6 +193,7 @@ public class JobExecutor {
                     @Override
                     public void action(JobInstanceNode jobInstanceNode) {
                         latch1.countDown();
+                        jobExecRuntime(triggerType, jobInstanceNode, attach);
                         afterExecute(jobInstanceNode);
                     }
                 })
@@ -217,6 +233,44 @@ public class JobExecutor {
             }
         }
         // TODO 定时任务移除zk job instance节点
+    }
+
+    private void jobExecRuntime(JobTriggerType type, JobInstanceNode jobInstanceNode, Attachment attach) {
+        switch (type) {
+            case AUTO:
+                break;
+            case MANUAL:
+                break;
+            case PLAN:
+                Optional<Object> optional = attach.get("planJobInstanceId");
+                if (!optional.isPresent() || !(optional.get() instanceof Long)) {
+                    log.error("must has planJobInstanceId");
+                    return;
+                }
+                Long planJobInstanceId = (Long) optional.get();
+                Long jobId = jobInstanceNode.getJobId();
+                Long jobInstanceId = jobInstanceNode.getJobInstanceId();
+                JobInstanceStatus jobInstanceStatus = JobInstanceStatus.fromCode(jobInstanceNode.getStatus());
+
+                JobPlanRuntime runtime = jobPlanRuntimeDao.selectByPlanJobInstanceIdAndJobId(planJobInstanceId, jobId);
+                if (runtime == null) {
+                    jobPlanRuntimeDao.insertJobPlanRuntime(new JobPlanRuntime(
+                        planJobInstanceId,
+                        jobId,
+                        jobInstanceId,
+                        jobInstanceStatus
+                    ));
+                } else {
+                    runtime.setStatus(jobInstanceStatus);
+                    jobPlanRuntimeDao.updateJobPlanRuntime(runtime);
+                }
+
+                List<JobPlanRuntime> runtimes = jobPlanRuntimeDao.selectByPlanJobInstanceId(planJobInstanceId);
+                zkClient.update(PathKit.format(JOB_INSTANCE_PATH, jobId, jobInstanceId, RUNTIME_PATH), JSON.toJSONString(runtimes));
+                break;
+            default:
+                log.error("no this job trigger type " + type.getMessage());
+        }
     }
 
     private void afterExecute(JobInstanceNode jobInstanceNode) {

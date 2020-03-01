@@ -6,7 +6,7 @@ public interface JobSchedulerService {
 
     Boolean triggerJob(Long jobId);
 
-    Boolean onlineAndTriggerJob(Long jobId);
+    Boolean onlineAndTriggerJob(Long jobId, Long planJobInstanceId);
 
     Boolean pauseJob(Long jobId);
 

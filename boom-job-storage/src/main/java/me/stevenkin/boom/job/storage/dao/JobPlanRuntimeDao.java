@@ -17,4 +17,6 @@ public interface JobPlanRuntimeDao {
     JobPlanRuntime selectById(Long id);
 
     List<JobPlanRuntime> selectByPlanJobInstanceId(Long planJobInstanceId);
+
+    JobPlanRuntime selectByPlanJobInstanceIdAndJobId(Long planJobInstanceId, Long jobId);
 }
