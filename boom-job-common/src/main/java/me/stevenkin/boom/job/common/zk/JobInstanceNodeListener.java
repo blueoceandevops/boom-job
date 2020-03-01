@@ -2,6 +2,7 @@ package me.stevenkin.boom.job.common.zk;
 
 import com.alibaba.fastjson.JSON;
 import me.stevenkin.boom.job.common.support.ActionOnCondition;
+import me.stevenkin.boom.job.common.zk.model.JobInstanceNode;
 import org.apache.zookeeper.data.Stat;
 
 import java.util.ArrayList;

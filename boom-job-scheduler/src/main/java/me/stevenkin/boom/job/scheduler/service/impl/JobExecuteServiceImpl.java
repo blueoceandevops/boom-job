@@ -2,7 +2,6 @@ package me.stevenkin.boom.job.scheduler.service.impl;
 
 import com.alibaba.dubbo.config.annotation.Service;
 import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONObject;
 import lombok.extern.slf4j.Slf4j;
 import me.stevenkin.boom.job.common.dto.*;
 import me.stevenkin.boom.job.common.enums.JobInstanceShardStatus;
@@ -10,12 +9,9 @@ import me.stevenkin.boom.job.common.enums.JobInstanceStatus;
 import me.stevenkin.boom.job.common.exception.ZkException;
 import me.stevenkin.boom.job.common.kit.NameKit;
 import me.stevenkin.boom.job.common.kit.PathKit;
-import me.stevenkin.boom.job.common.po.JobInstance;
-import me.stevenkin.boom.job.common.po.JobInstanceShard;
-import me.stevenkin.boom.job.common.po.JobKey;
-import me.stevenkin.boom.job.common.po.JobShardExecuteLog;
+import me.stevenkin.boom.job.common.po.*;
 import me.stevenkin.boom.job.common.service.JobExecuteService;
-import me.stevenkin.boom.job.common.zk.JobInstanceNode;
+import me.stevenkin.boom.job.common.zk.model.JobInstanceNode;
 import me.stevenkin.boom.job.common.zk.ZkClient;
 import me.stevenkin.boom.job.storage.dao.JobInfoDao;
 import me.stevenkin.boom.job.storage.dao.JobInstanceDao;
@@ -27,7 +23,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -61,6 +56,7 @@ public class JobExecuteServiceImpl implements JobExecuteService {
         JobInstance jobInstance = jobInstanceDao.selectById(shard.getJobInstanceId());
         dto.setJobShardId(shard.getId());
         dto.setJobInstanceId(shard.getJobInstanceId());
+        dto.setJobId(jobInstance.getJobId());
         JobKey jobKey = jobInfoDao.selectJobKeyById(jobInstance.getJobId());
         dto.setJobKey(NameKit.getJobId(jobKey.getAppName(), jobKey.getAuthor(), jobKey.getJobClassName()));
         dto.setJobParam(jobInstance.getJobParam());
@@ -114,6 +110,11 @@ public class JobExecuteServiceImpl implements JobExecuteService {
             }
         }
         return isFinished;
+    }
+
+    @Override
+    public List<JobPlanRuntime> getJobPlanRuntime(Long jobInstanceId) {
+        return null;
     }
 
     @Override

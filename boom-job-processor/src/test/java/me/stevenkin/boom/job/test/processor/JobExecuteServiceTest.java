@@ -5,6 +5,7 @@ import me.stevenkin.boom.job.common.dto.FetchShardRequest;
 import me.stevenkin.boom.job.common.dto.FetchShardResponse;
 import me.stevenkin.boom.job.common.dto.JobExecReport;
 import me.stevenkin.boom.job.common.dto.JobInstanceShardDto;
+import me.stevenkin.boom.job.common.po.JobPlanRuntime;
 import me.stevenkin.boom.job.common.service.JobExecuteService;
 
 import java.util.List;
@@ -27,6 +28,11 @@ public class JobExecuteServiceTest implements JobExecuteService {
     @Override
     public Boolean checkJobInstanceIsFinish(Long jobInstance) {
         return count <= 0L;
+    }
+
+    @Override
+    public List<JobPlanRuntime> getJobPlanRuntime(Long jobInstanceId) {
+        return null;
     }
 
     @Override

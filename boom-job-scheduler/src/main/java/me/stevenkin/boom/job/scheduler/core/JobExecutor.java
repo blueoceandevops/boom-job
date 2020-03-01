@@ -10,51 +10,45 @@ import me.stevenkin.boom.job.common.dto.JobDetail;
 import me.stevenkin.boom.job.common.dto.JobFireRequest;
 import me.stevenkin.boom.job.common.enums.JobInstanceShardStatus;
 import me.stevenkin.boom.job.common.enums.JobInstanceStatus;
-import me.stevenkin.boom.job.common.exception.ZkException;
-import me.stevenkin.boom.job.common.kit.Holder;
+import me.stevenkin.boom.job.common.enums.JobTriggerType;
+import me.stevenkin.boom.job.common.enums.JobType;
 import me.stevenkin.boom.job.common.kit.NameKit;
 import me.stevenkin.boom.job.common.kit.PathKit;
 import me.stevenkin.boom.job.common.po.JobInstance;
 import me.stevenkin.boom.job.common.po.JobInstanceShard;
+import me.stevenkin.boom.job.common.po.JobPlanRuntime;
 import me.stevenkin.boom.job.common.service.ClientProcessor;
 import me.stevenkin.boom.job.common.support.ActionOnCondition;
-import me.stevenkin.boom.job.common.zk.JobInstanceNode;
+import me.stevenkin.boom.job.common.support.Attachment;
+import me.stevenkin.boom.job.common.zk.model.JobInstanceNode;
 import me.stevenkin.boom.job.common.zk.JobInstanceNodeListener;
-import me.stevenkin.boom.job.common.zk.NodeListener;
 import me.stevenkin.boom.job.common.zk.ZkClient;
-import me.stevenkin.boom.job.storage.dao.BlacklistDao;
-import me.stevenkin.boom.job.storage.dao.JobInstanceDao;
-import me.stevenkin.boom.job.storage.dao.JobInstanceShardDao;
-import me.stevenkin.boom.job.storage.dao.JobScheduleDao;
-import org.apache.commons.lang3.StringUtils;
+import me.stevenkin.boom.job.storage.dao.*;
 import org.apache.curator.framework.recipes.cache.NodeCache;
-import org.apache.zookeeper.data.Stat;
-import org.quartz.JobExecutionContext;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.*;
-import java.util.function.Consumer;
-import java.util.function.Predicate;
 
 @Component
 @Slf4j
 public class JobExecutor {
     private static final String JOB_INSTANCE_PATH = "/job_instance";
+
+    private static final String RUNTIME_PATH = "runtime";
     @Autowired
     private JobInstanceDao jobInstanceDao;
     @Autowired
     private JobInstanceShardDao jobInstanceShardDao;
     @Autowired
     private JobScheduleDao jobScheduleDao;
+    @Autowired
+    private JobPlanRuntimeDao jobPlanRuntimeDao;
     @Autowired
     private BlacklistDao blacklistDao;
     @Autowired
@@ -67,7 +61,7 @@ public class JobExecutor {
     private ConcurrentMap<Long, NodeCache> nodeCacheMap = new ConcurrentHashMap<>();
 
     @Transactional(rollbackFor = Exception.class)
-    public void execute(JobDetail jobDetail, ClientProcessor clientProcessor) {
+    public void execute(JobDetail jobDetail, ClientProcessor clientProcessor, JobTriggerType type, Attachment attach) {
         try {
             latch.await();
         } catch (InterruptedException e) {
@@ -75,6 +69,7 @@ public class JobExecutor {
         }
         Integer n;
         Long jobId = jobDetail.getJob().getId();
+        JobType jobType = jobDetail.getJob().getType();
         //when a job is scheduled by multiple servers, ensure only one can trigger success
         n = jobScheduleDao.triggerJob(jobId, schedulerId);
         if (n != 1) {
@@ -128,6 +123,7 @@ public class JobExecutor {
 
         zkClient.createIfNotExists(PathKit.format(JOB_INSTANCE_PATH, jobId));
         JobInstanceNode node = new JobInstanceNode(jobId, jobInstanceId, jobInstance.getStatus(),
+                LocalDateTime.now(),
                 jobInstance.getStartTime(),
                 jobInstance.getExpectedEndTime());
         zkClient.create(PathKit.format(JOB_INSTANCE_PATH, jobId, jobInstanceId), JSON.toJSON(node));
@@ -210,11 +206,12 @@ public class JobExecutor {
         }
         long endTime = System.currentTimeMillis();
         // 超时
-        if (endTime - startTime > jobDetail.getJobConfig().getTimeout()) {
+        if (endTime - startTime >= jobDetail.getJobConfig().getTimeout()) {
             int n = jobInstanceDao.updateJobInstanceStatus(jobInstanceId, JobInstanceStatus.RUNNING.getCode(), JobInstanceStatus.TIMEOUT.getCode());
             // 更新job实例状态成功，说明已超时，就尝试终止正在运行的执行器
             if (n > 0) {
                 zkClient.update(PathKit.format(JOB_INSTANCE_PATH, jobId, jobInstanceId), new JobInstanceNode(jobId, jobInstanceId, JobInstanceStatus.TIMEOUT.getCode(),
+                        LocalDateTime.now(),
                         jobInstance.getStartTime(),
                         jobInstance.getExpectedEndTime()));
             }

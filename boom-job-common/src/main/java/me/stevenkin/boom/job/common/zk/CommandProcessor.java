@@ -3,6 +3,7 @@ package me.stevenkin.boom.job.common.zk;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import me.stevenkin.boom.job.common.kit.PathKit;
+import me.stevenkin.boom.job.common.support.ActionOnCondition;
 import me.stevenkin.boom.job.common.support.Lifecycle;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.curator.framework.recipes.cache.NodeCache;
@@ -47,11 +48,9 @@ public class CommandProcessor extends Lifecycle {
             }
 
             @Override
-            public NodeListener add(Predicate<?> predicate, Consumer<?> action) {
+            public NodeListener add(ActionOnCondition actionOnCondition) {
                 return null;
             }
-
-
         });
         nodeCache.start();
         initProcess();

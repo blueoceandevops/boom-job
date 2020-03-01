@@ -12,4 +12,7 @@ public class JobPlan {
     private Long jobId;
     private Long fromJob;
     private Long toJob;
+    private Boolean ignoreFailed;
+    private Boolean ignoreTimeout;
+    private Boolean ignoreTerminate;
 }

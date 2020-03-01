@@ -8,12 +8,14 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import me.stevenkin.boom.job.common.dto.JobDetail;
 import me.stevenkin.boom.job.common.enums.JobStatus;
+import me.stevenkin.boom.job.common.enums.JobTriggerType;
 import me.stevenkin.boom.job.common.exception.ScheduleException;
 import me.stevenkin.boom.job.common.po.App;
 import me.stevenkin.boom.job.common.po.Job;
 import me.stevenkin.boom.job.common.po.JobConfig;
 import me.stevenkin.boom.job.common.po.JobKey;
 import me.stevenkin.boom.job.common.service.ClientProcessor;
+import me.stevenkin.boom.job.common.support.Attachment;
 import me.stevenkin.boom.job.common.support.Lifecycle;
 import me.stevenkin.boom.job.common.zk.ZkClient;
 import me.stevenkin.boom.job.scheduler.service.FailoverService;
@@ -100,16 +102,16 @@ public class JobManager extends Lifecycle {
         } catch (InterruptedException e) {
             log.error("happen error", e);
         }
-        return doTriggerJob(jobId);
+        return doTriggerJob(jobId, JobTriggerType.MANUAL, new Attachment());
     }
 
-    private Boolean doTriggerJob(Long jobId) {
+    private Boolean doTriggerJob(Long jobId, JobTriggerType type, Attachment attach) {
         if (!jobCaches.containsKey(jobId))
             return Boolean.FALSE;
-        return jobCaches.get(jobId).trigger();
+        return jobCaches.get(jobId).trigger(type, attach);
     }
 
-    public synchronized Boolean onlineAndTriggerJob(Long jobId) {
+    public synchronized Boolean planTriggerJob(Long jobId, Long planJobInstanceId) {
         try {
             latch.await();
         } catch (InterruptedException e) {
@@ -117,7 +119,7 @@ public class JobManager extends Lifecycle {
         }
         if (!doOnlineJob(jobId))
             return Boolean.FALSE;
-        return doTriggerJob(jobId);
+        return doTriggerJob(jobId, JobTriggerType.PLAN, new Attachment().put("planJobInstanceId", planJobInstanceId));
     }
 
     @Transactional(rollbackFor = Exception.class)

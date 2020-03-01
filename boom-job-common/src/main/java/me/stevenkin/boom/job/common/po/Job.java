@@ -3,6 +3,7 @@ package me.stevenkin.boom.job.common.po;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import me.stevenkin.boom.job.common.enums.JobType;
 
 import java.time.LocalDateTime;
 
@@ -12,7 +13,7 @@ import java.time.LocalDateTime;
 public class Job {
     private Long id;
     private String jobClass;
-    private Integer type;//job type, simple default
+    private JobType type;//job type, simple default
     private Integer status;
     private String schedulerId;
     private Long appId;

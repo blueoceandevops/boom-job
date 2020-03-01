@@ -5,6 +5,7 @@ import com.alibaba.dubbo.config.annotation.Service;
 import com.github.pagehelper.PageHelper;
 import me.stevenkin.boom.job.common.po.Job;
 import me.stevenkin.boom.job.common.po.JobConfig;
+import me.stevenkin.boom.job.common.po.JobPlan;
 import me.stevenkin.boom.job.common.service.JobAdminService;
 import me.stevenkin.boom.job.common.service.JobSchedulerService;
 import me.stevenkin.boom.job.common.vo.JobConfigVo;
@@ -33,8 +34,18 @@ public class JobAdminServiceImpl implements JobAdminService {
     }
 
     @Override
+    public Job getJobById(Long jobId) {
+        return null;
+    }
+
+    @Override
     public JobConfig getJobConfigByJobId(Long jobId) {
         return jobConfigDao.selectByJobId(jobId);
+    }
+
+    @Override
+    public List<JobPlan> getJobPlanByJobId(Long jobId) {
+        return null;
     }
 
     @Override

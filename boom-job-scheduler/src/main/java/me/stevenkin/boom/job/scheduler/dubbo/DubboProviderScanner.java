@@ -106,7 +106,7 @@ public class DubboProviderScanner extends Lifecycle {
         for (URL url : providerUrls) {
             if (SERVICE_NAME.equals(url.getServiceInterface())) {
                 schedulerId = NameKit.getNodeId(url.toFullString());
-                break;
+                return;
             }
         }
         throw new RuntimeException("can not find the scheduler id");

@@ -4,11 +4,13 @@ import com.alibaba.dubbo.config.ReferenceConfig;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import me.stevenkin.boom.job.common.enums.JobTriggerType;
 import me.stevenkin.boom.job.common.exception.ScheduleException;
 import me.stevenkin.boom.job.common.kit.NameKit;
 import me.stevenkin.boom.job.common.po.Job;
 import me.stevenkin.boom.job.common.po.JobKey;
 import me.stevenkin.boom.job.common.service.ClientProcessor;
+import me.stevenkin.boom.job.common.support.Attachment;
 import me.stevenkin.boom.job.common.zk.ZkClient;
 import me.stevenkin.boom.job.scheduler.dubbo.DubboConfigHolder;
 import org.quartz.*;
@@ -79,10 +81,10 @@ public class ScheduledJob {
         return Boolean.TRUE;
     }
 
-    public Boolean trigger() {
+    public Boolean trigger(JobTriggerType type, Attachment attach) {
         if (isPaused)
             return Boolean.FALSE;
-        jobExecutor.execute(jobDetail, clientProcessor);
+        jobExecutor.execute(jobDetail, clientProcessor, type, attach);
         return Boolean.TRUE;
     }
 

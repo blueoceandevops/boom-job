@@ -9,10 +9,11 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class JobContext {
     private String jobKey;
+    private Long jobId;
     private Long jobInstanceId;
     private Long jobShardId;
-    private Long jobShardIndex;
+    private Integer jobShardIndex;
     private String jobShardParam;
     private String jobParam;
-    private Long jobShardCount;
+    private Integer jobShardCount;
 }

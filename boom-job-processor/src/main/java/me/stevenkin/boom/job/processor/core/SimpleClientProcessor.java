@@ -17,7 +17,7 @@ import me.stevenkin.boom.job.common.service.ClientProcessor;
 import me.stevenkin.boom.job.common.service.JobExecuteService;
 import me.stevenkin.boom.job.common.support.ActionOnCondition;
 import me.stevenkin.boom.job.common.support.Lifecycle;
-import me.stevenkin.boom.job.common.zk.JobInstanceNode;
+import me.stevenkin.boom.job.common.zk.model.JobInstanceNode;
 import me.stevenkin.boom.job.common.zk.JobInstanceNodeListener;
 import me.stevenkin.boom.job.common.zk.ZkClient;
 import org.apache.commons.lang3.StringUtils;
