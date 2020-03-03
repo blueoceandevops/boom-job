@@ -9,7 +9,9 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class JobKey {
     private Long jobId;
-    private String author;
+    private Long appId;
+    private Long userId;
+    private String user;
     private String appName;
     private String jobClassName;
 }

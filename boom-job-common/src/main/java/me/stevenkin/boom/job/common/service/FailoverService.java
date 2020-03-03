@@ -1,4 +1,4 @@
-package me.stevenkin.boom.job.scheduler.service;
+package me.stevenkin.boom.job.common.service;
 
 public interface FailoverService {
 

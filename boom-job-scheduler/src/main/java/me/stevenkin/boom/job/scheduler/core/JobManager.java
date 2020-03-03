@@ -1,7 +1,5 @@
 package me.stevenkin.boom.job.scheduler.core;
 
-import com.alibaba.dubbo.config.ReferenceConfig;
-import com.alibaba.dubbo.config.annotation.Reference;
 import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
@@ -18,7 +16,7 @@ import me.stevenkin.boom.job.common.service.ClientProcessor;
 import me.stevenkin.boom.job.common.support.Attachment;
 import me.stevenkin.boom.job.common.support.Lifecycle;
 import me.stevenkin.boom.job.common.zk.ZkClient;
-import me.stevenkin.boom.job.scheduler.service.FailoverService;
+import me.stevenkin.boom.job.common.service.FailoverService;
 import me.stevenkin.boom.job.storage.dao.AppInfoDao;
 import me.stevenkin.boom.job.storage.dao.JobConfigDao;
 import me.stevenkin.boom.job.storage.dao.JobInfoDao;

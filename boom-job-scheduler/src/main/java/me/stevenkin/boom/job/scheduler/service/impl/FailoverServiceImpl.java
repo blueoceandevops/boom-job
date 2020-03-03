@@ -9,7 +9,7 @@ import me.stevenkin.boom.job.common.po.JobInstanceShard;
 import me.stevenkin.boom.job.common.po.JobKey;
 import me.stevenkin.boom.job.common.po.JobShardExecuteLog;
 import me.stevenkin.boom.job.common.service.JobSchedulerService;
-import me.stevenkin.boom.job.scheduler.service.FailoverService;
+import me.stevenkin.boom.job.common.service.FailoverService;
 import me.stevenkin.boom.job.storage.dao.JobInfoDao;
 import me.stevenkin.boom.job.storage.dao.JobInstanceDao;
 import me.stevenkin.boom.job.storage.dao.JobInstanceShardDao;
@@ -47,7 +47,7 @@ public class FailoverServiceImpl implements FailoverService {
             log.setJobInstanceId(s.getJobInstanceId());
             log.setJobShardId(s.getId());
             JobKey jobKey = jobInfoDao.selectJobKeyById(jobInstanceDao.selectById(s.getJobInstanceId()).getJobId());
-            log.setJobKey(NameKit.getJobId(jobKey.getAppName(), jobKey.getAuthor(), jobKey.getJobClassName()));
+            log.setJobKey(NameKit.getJobKey(jobKey.getAppName(), jobKey.getUser(), jobKey.getJobClassName()));
             jobShardExecuteLogDao.insert(log);
         });
     }

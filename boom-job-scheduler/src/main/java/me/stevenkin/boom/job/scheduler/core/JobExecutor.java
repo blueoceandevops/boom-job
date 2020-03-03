@@ -115,7 +115,7 @@ public class JobExecutor {
             jobShardIds.add(shard.getId());
         }
         JobFireRequest request = new JobFireRequest();
-        request.setJobKey(NameKit.getJobId(jobDetail.getJobKey().getAppName(), jobDetail.getJobKey().getAuthor(), jobDetail.getJobKey().getJobClassName()));
+        request.setJobKey(NameKit.getJobKey(jobDetail.getJobKey().getAppName(), jobDetail.getJobKey().getUser(), jobDetail.getJobKey().getJobClassName()));
         request.setJobId(jobId);
         request.setJobInstanceId(jobInstance.getId());
         request.setJobShardIds(jobShardIds);

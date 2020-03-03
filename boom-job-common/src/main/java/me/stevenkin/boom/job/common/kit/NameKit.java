@@ -13,7 +13,7 @@ public class NameKit {
         return genName(author, appName);
     }
 
-    public static String getJobId(String appName, String author, String jobClassName) {
+    public static String getJobKey(String appName, String author, String jobClassName) {
         return genName(author, appName, jobClassName);
     }
 

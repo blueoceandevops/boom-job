@@ -58,7 +58,9 @@ public class JobExecuteServiceImpl implements JobExecuteService {
         dto.setJobInstanceId(shard.getJobInstanceId());
         dto.setJobId(jobInstance.getJobId());
         JobKey jobKey = jobInfoDao.selectJobKeyById(jobInstance.getJobId());
-        dto.setJobKey(NameKit.getJobId(jobKey.getAppName(), jobKey.getAuthor(), jobKey.getJobClassName()));
+        dto.setUserId(jobKey.getUserId());
+        dto.setAppId(jobKey.getAppId());
+        dto.setJobKey(NameKit.getJobKey(jobKey.getAppName(), jobKey.getUser(), jobKey.getJobClassName()));
         dto.setJobParam(jobInstance.getJobParam());
         dto.setJobShardCount(jobInstance.getShardCount());
         dto.setJobShardIndex(shard.getIndex());

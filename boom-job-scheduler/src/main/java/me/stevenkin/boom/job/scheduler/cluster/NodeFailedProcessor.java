@@ -7,7 +7,7 @@ import me.stevenkin.boom.job.common.zk.SimpleZkQueue;
 import me.stevenkin.boom.job.common.zk.ZkClient;
 import me.stevenkin.boom.job.common.zk.ZkElement;
 import me.stevenkin.boom.job.common.zk.ZkQueue;
-import me.stevenkin.boom.job.scheduler.service.FailoverService;
+import me.stevenkin.boom.job.common.service.FailoverService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 

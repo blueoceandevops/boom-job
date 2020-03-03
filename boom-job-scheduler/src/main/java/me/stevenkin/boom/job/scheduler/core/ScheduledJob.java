@@ -7,7 +7,6 @@ import lombok.extern.slf4j.Slf4j;
 import me.stevenkin.boom.job.common.enums.JobTriggerType;
 import me.stevenkin.boom.job.common.exception.ScheduleException;
 import me.stevenkin.boom.job.common.kit.NameKit;
-import me.stevenkin.boom.job.common.po.Job;
 import me.stevenkin.boom.job.common.po.JobKey;
 import me.stevenkin.boom.job.common.service.ClientProcessor;
 import me.stevenkin.boom.job.common.support.Attachment;
@@ -128,7 +127,7 @@ public class ScheduledJob {
 
     private org.quartz.JobKey buildJobKey(JobKey jobKey) {
         return org.quartz.JobKey.jobKey(jobKey.getJobClassName(),
-                NameKit.getAppKey(jobKey.getAppName(), jobKey.getAuthor()));
+                NameKit.getAppKey(jobKey.getAppName(), jobKey.getUser()));
     }
 
     private JobDataMap buildJobData(me.stevenkin.boom.job.common.dto.JobDetail jobDetail, ClientProcessor clientProcessor, JobExecutor jobExecutor) {
@@ -151,7 +150,7 @@ public class ScheduledJob {
     }
 
     private void buildJobProcessor(JobKey jobKey) {
-        String group = NameKit.getAppKey(jobKey.getAppName(), jobKey.getAuthor());
+        String group = NameKit.getAppKey(jobKey.getAppName(), jobKey.getUser());
         clientProcessor = jobManager.getReferenceCache().get(group);
         if (clientProcessor == null) {
             synchronized (jobManager.getReferenceCache()) {
@@ -172,7 +171,7 @@ public class ScheduledJob {
 
     private TriggerKey buildTriggerKey(JobKey jobKey) {
         return TriggerKey.triggerKey(jobKey.getJobClassName(),
-                NameKit.getAppKey(jobKey.getAppName(), jobKey.getAuthor()));
+                NameKit.getAppKey(jobKey.getAppName(), jobKey.getUser()));
     }
 
     private boolean isDiff(me.stevenkin.boom.job.common.dto.JobDetail jobDetail) {
